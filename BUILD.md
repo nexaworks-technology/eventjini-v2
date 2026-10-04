@@ -48,3 +48,67 @@ Status: In progress (code complete; live Supabase/Google verification pending)
 - [ ] Session survives page refresh
 - [ ] Sign out tested
 - [ ] Bad password shows an error and stays on /login
+
+## P1 — Events Core
+
+Status: In progress (code complete; migration applied; logged-in click-through verification pending)
+
+Migration: `supabase/migrations/20261005010000_create_events.sql` (applied; anon insert and slug-function calls confirmed rejected).
+
+### Database
+- [x] event_status enum
+- [x] events table migration
+- [x] organizer ownership
+- [x] timestamps (plus `updated_at` trigger)
+- [x] field constraints (also a slug-format CHECK)
+- [x] unique slug constraint
+- [x] RLS enabled
+- [x] own-event SELECT policy
+- [x] own-event INSERT policy
+- [x] own-event UPDATE policy
+- [x] public published-event SELECT policy
+- [x] `is_slug_available()` security-definer function (authenticated only) so availability sees other organizers' private drafts
+
+### Organizer
+- [x] Events list
+- [x] Create event CTA
+- [x] Basics step
+- [x] Date & Time step
+- [x] Settings step
+- [x] Review step
+- [x] Save draft
+- [x] Publish
+- [x] Event summary
+- [x] Event editing
+
+### Public
+- [x] /e/[slug]
+- [ ] Published events render (needs live test)
+- [ ] Draft events return 404 (needs live test)
+- [x] Responsive event page
+
+### Slugs
+- [x] Title → slug generation
+- [x] Slug normalization
+- [x] Availability check
+- [x] Database uniqueness
+- [x] Duplicate error state
+
+### Decisions
+- Server actions (`app/dashboard/events/actions.ts`) re-validate all input and set `organizer_id` from `auth.getUser()`; the browser never supplies it.
+- Date/time are converted from the selected IANA timezone to UTC (`lib/time.ts`, no date library) and stored as `timestamptz` plus `timezone`; the edit form converts back.
+- The public page filters on `status = 'published'` explicitly, so an organizer viewing their own draft slug also gets 404.
+- Slug availability is visible to any signed-in user (it must be, to prevent collisions); it is not callable by anonymous visitors.
+- No slug history/redirects: an old slug stops resolving after a change.
+- No delete UI, so no DELETE policy.
+
+### Verification
+- [ ] Organizer can create event
+- [ ] Organizer can edit own event
+- [ ] Organizer cannot edit another user's event
+- [ ] Draft is not publicly visible
+- [ ] Published event is publicly visible
+- [ ] Duplicate slug rejected
+- [ ] Date/time persists correctly
+- [x] Production build passes
+- [x] Unit-checked slug normalization and timezone conversion (IST, EDT/EST, invalid date)
