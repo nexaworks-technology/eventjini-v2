@@ -67,7 +67,7 @@ export function EventModuleNav({ eventId, role, onNavigate }: { eventId: string;
                 aria-current={active === key ? "page" : undefined}
                 className={cn(
                   "flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-colors",
-                  active === key ? "bg-primary/10 font-medium text-primary" : "text-foreground/80 hover:bg-muted hover:text-foreground"
+                  active === key ? "bg-primary/10 font-medium text-[color-mix(in_oklch,var(--primary),var(--foreground)_35%)]" : "text-foreground/80 hover:bg-muted hover:text-foreground"
                 )}
               >
                 <Icon className="size-4" aria-hidden />

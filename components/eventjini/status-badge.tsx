@@ -3,11 +3,11 @@ import { cn } from "@/lib/utils";
 type Tone = "success" | "active" | "neutral" | "warning" | "danger" | "info";
 
 const TONES: Record<Tone, string> = {
-  success: "bg-success/12 text-success ring-success/25",
-  active: "bg-primary/12 text-primary ring-primary/25",
+  success: "bg-success/12 text-[color-mix(in_oklch,var(--success),var(--foreground)_30%)] ring-success/25",
+  active: "bg-primary/12 text-[color-mix(in_oklch,var(--primary),var(--foreground)_30%)] ring-primary/25",
   neutral: "bg-muted text-muted-foreground ring-border",
   warning: "bg-warning/15 text-[color-mix(in_oklch,var(--warning),var(--foreground)_35%)] ring-warning/30",
-  danger: "bg-destructive/10 text-destructive ring-destructive/25",
+  danger: "bg-destructive/10 text-[color-mix(in_oklch,var(--destructive),var(--foreground)_25%)] ring-destructive/25",
   info: "bg-chart-2/12 text-[color-mix(in_oklch,var(--chart-2),var(--foreground)_30%)] ring-chart-2/25",
 };
 

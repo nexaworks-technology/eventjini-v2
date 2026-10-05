@@ -472,3 +472,9 @@ Status: In progress (usage limit reached mid-verification). No schema, RLS, RPC,
 - App-wide tokens in globals.css are now the orange brand (light + dark); the `.landing` override is gone. Same orange in PWA `theme_color`, offline page, icons/favicon, brand mark, and as the default for events and emails with no custom colour (`DEFAULT_PRIMARY` = #C2410C).
 - Event-specific brand colours still apply only on public event pages and in that event's emails.
 - Verified: light and dark rendering of home, dashboard overview, analytics and sponsors. Chart palette is now orange + warm neutrals + amber/clay (no blue/cyan/magenta). Not re-checked: every remaining page, a formal contrast audit.
+
+## Contrast audit (post-P7)
+
+- Automated text-contrast audit (WCAG AA, computed colours) over home, public event, registration form, dashboard, overview, guests, registration, communications, automations, budget, team, settings, check-in, new-event wizard: light mode clean after darkening `--primary` and `--success` and the active nav/badge text; dark mode clean on the pages checked (home, public event, dashboard, communications, check-in, settings).
+- Not covered: text over images/gradients, icon-only controls, ticket page, sponsor portal, scanner in active scan state.
+- Unsubscribe e2e: BLOCKED. `registration_email_prefs` / `unsubscribe_preview` are not in the live database schema (PostgREST reports them missing). Migration `20261005100000_email_unsubscribe.sql` has not taken effect there; rerun it, then `notify pgrst, 'reload schema';`.
