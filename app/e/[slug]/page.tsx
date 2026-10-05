@@ -62,24 +62,39 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
     <div className="min-h-dvh bg-background" style={eventBrandStyle(event.primary_color, event.accent_color)}>
       <PageViewTracker eventId={event.id} />
 
-      <header className="event-hero">
-        {event.cover_image_url && (
-          // Decorative: the event is identified by the heading below.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={event.cover_image_url} alt="" fetchPriority="high" decoding="async" className="h-48 w-full object-cover sm:h-72" />
-        )}
-        <div className="mx-auto max-w-3xl space-y-5 px-5 py-10 sm:px-8 sm:py-14">
-          <h1 className="font-heading text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-5xl">{event.title}</h1>
-          <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm opacity-90 sm:text-base">
-            <span className="inline-flex items-center gap-1.5"><CalendarDays className="size-4" aria-hidden /> {when.date}</span>
-            <span className="inline-flex items-center gap-1.5"><Clock className="size-4" aria-hidden /> {when.time} ({event.timezone})</span>
-            {event.location && <span className="inline-flex items-center gap-1.5"><MapPin className="size-4" aria-hidden /> {event.location}</span>}
+      {event.cover_image_url ? (
+        <header className="mx-auto max-w-4xl px-4 pt-4 sm:px-6 sm:pt-6">
+          {/* Shown uncropped: banners often contain text. Decorative; the event is identified by the heading. */}
+          <div className="overflow-hidden rounded-2xl border bg-muted">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={event.cover_image_url} alt="" fetchPriority="high" decoding="async" className="mx-auto block h-auto max-h-[26rem] w-full object-contain" />
           </div>
-          <div>{cta(true)}</div>
-        </div>
-      </header>
+          <div className="mt-6 space-y-4 pb-2">
+            <div className="h-1 w-16 rounded-full" style={{ backgroundColor: "var(--event-primary)" }} aria-hidden />
+            <h1 className="font-heading text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl">{event.title}</h1>
+            <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground sm:text-base">
+              <span className="inline-flex items-center gap-1.5"><CalendarDays className="size-4" aria-hidden /> {when.date}</span>
+              <span className="inline-flex items-center gap-1.5"><Clock className="size-4" aria-hidden /> {when.time} ({event.timezone})</span>
+              {event.location && <span className="inline-flex items-center gap-1.5"><MapPin className="size-4" aria-hidden /> {event.location}</span>}
+            </div>
+            <div>{cta(false)}</div>
+          </div>
+        </header>
+      ) : (
+        <header className="event-hero">
+          <div className="mx-auto max-w-3xl space-y-5 px-5 py-10 sm:px-8 sm:py-14">
+            <h1 className="font-heading text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-5xl">{event.title}</h1>
+            <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm opacity-90 sm:text-base">
+              <span className="inline-flex items-center gap-1.5"><CalendarDays className="size-4" aria-hidden /> {when.date}</span>
+              <span className="inline-flex items-center gap-1.5"><Clock className="size-4" aria-hidden /> {when.time} ({event.timezone})</span>
+              {event.location && <span className="inline-flex items-center gap-1.5"><MapPin className="size-4" aria-hidden /> {event.location}</span>}
+            </div>
+            <div>{cta(true)}</div>
+          </div>
+        </header>
+      )}
 
-      <main className="mx-auto max-w-3xl space-y-5 px-4 py-8 sm:px-6">
+      <main className={cn("mx-auto space-y-5 px-4 py-8 sm:px-6", event.cover_image_url ? "max-w-4xl" : "max-w-3xl")}>
         {event.description && (
           <PublicSection title="About">
             <p className="leading-7 whitespace-pre-line text-foreground/90">{event.description}</p>
@@ -116,7 +131,9 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
           </PublicSection>
         )}
 
-        <section className="event-rule rounded-xl border bg-card p-5 text-card-foreground sm:p-6">{cta(false)}</section>
+        {sessions.length > 0 && (
+          <section className="event-rule rounded-xl border bg-card p-5 text-card-foreground sm:p-6">{cta(false)}</section>
+        )}
       </main>
       <PoweredBy />
     </div>
