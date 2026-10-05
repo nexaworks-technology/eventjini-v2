@@ -477,4 +477,4 @@ Status: In progress (usage limit reached mid-verification). No schema, RLS, RPC,
 
 - Automated text-contrast audit (WCAG AA, computed colours) over home, public event, registration form, dashboard, overview, guests, registration, communications, automations, budget, team, settings, check-in, new-event wizard: light mode clean after darkening `--primary` and `--success` and the active nav/badge text; dark mode clean on the pages checked (home, public event, dashboard, communications, check-in, settings).
 - Not covered: text over images/gradients, icon-only controls, ticket page, sponsor portal, scanner in active scan state.
-- Unsubscribe e2e: BLOCKED. `registration_email_prefs` / `unsubscribe_preview` are not in the live database schema (PostgREST reports them missing). Migration `20261005100000_email_unsubscribe.sql` has not taken effect there; rerun it, then `notify pgrst, 'reload schema';`.
+- Unsubscribe e2e: PASSED against the live DB (RLS lock-down, preview, GET-safe page, one-click POST, opt-out recorded, count drops, opted-out registration excluded from queue_broadcast, resubscribe). Not covered: claim output in a real send, headers in a real inbox.
