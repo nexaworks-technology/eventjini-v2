@@ -41,7 +41,7 @@ export async function saveEvent(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user || user.is_anonymous) redirect("/login");
 
   const { errors, startAt, endAt, capacity } = validateEventValues(values);
   if (Object.keys(errors).length > 0 || !startAt || !endAt) {
@@ -70,7 +70,6 @@ export async function saveEvent(
       .from("events")
       .update(update)
       .eq("id", eventId)
-      .eq("organizer_id", user.id)
       .select("id")
       .maybeSingle();
 
@@ -106,13 +105,12 @@ export async function publishEvent(eventId: string): Promise<{ ok: false; error:
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user || user.is_anonymous) redirect("/login");
 
   const { data, error } = await supabase
     .from("events")
     .update({ status: "published" })
     .eq("id", eventId)
-    .eq("organizer_id", user.id)
     .select("id")
     .maybeSingle();
 

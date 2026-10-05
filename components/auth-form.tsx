@@ -7,7 +7,7 @@ import { createClient } from "@/utils/supabase/client";
 
 type Mode = "login" | "register";
 
-export function AuthForm({ mode, initialError }: { mode: Mode; initialError?: string }) {
+export function AuthForm({ mode, initialError, next }: { mode: Mode; initialError?: string; next?: string }) {
   const router = useRouter();
   const isRegister = mode === "register";
 
@@ -29,7 +29,7 @@ export function AuthForm({ mode, initialError }: { mode: Mode; initialError?: st
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}` },
       });
 
       if (error) {
@@ -50,7 +50,7 @@ export function AuthForm({ mode, initialError }: { mode: Mode; initialError?: st
         return;
       }
 
-      router.replace("/dashboard");
+      router.replace(next ?? "/dashboard");
       router.refresh();
       return;
     }
@@ -67,7 +67,7 @@ export function AuthForm({ mode, initialError }: { mode: Mode; initialError?: st
       return;
     }
 
-    router.replace("/dashboard");
+    router.replace(next ?? "/dashboard");
     router.refresh();
   }
 
@@ -79,7 +79,7 @@ export function AuthForm({ mode, initialError }: { mode: Mode; initialError?: st
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}` },
     });
 
     if (error) {
@@ -175,14 +175,14 @@ export function AuthForm({ mode, initialError }: { mode: Mode; initialError?: st
         {isRegister ? (
           <>
             Already have an account?{" "}
-            <Link href="/login" className="font-medium text-zinc-900 underline">
+            <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-medium text-zinc-900 underline">
               Sign in
             </Link>
           </>
         ) : (
           <>
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="font-medium text-zinc-900 underline">
+            <Link href={next ? `/register?next=${encodeURIComponent(next)}` : "/register"} className="font-medium text-zinc-900 underline">
               Create one
             </Link>
           </>

@@ -31,7 +31,7 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith(prefix)
   );
 
-  if (!user && isProtected) {
+  if ((!user || user.is_anonymous) && isProtected) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     const redirect = NextResponse.redirect(loginUrl);

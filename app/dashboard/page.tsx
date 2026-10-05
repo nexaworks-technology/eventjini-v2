@@ -8,7 +8,7 @@ export default async function DashboardPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user || user.is_anonymous) redirect("/login");
 
   const { data: profile } = await supabase
     .from("profiles")

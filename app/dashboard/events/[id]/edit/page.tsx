@@ -1,30 +1,12 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
 import { EventWizard } from "@/components/event-wizard";
-import type { EventFormValues, EventRow } from "@/lib/events";
+import { ADMIN_ROLES, requireEventAccess } from "@/lib/event-access";
+import type { EventFormValues } from "@/lib/events";
 import { getTimezones, utcToZoned } from "@/lib/time";
-import { createClient } from "@/utils/supabase/server";
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function EditEventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  if (!UUID_RE.test(id)) notFound();
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data } = await supabase
-    .from("events")
-    .select("*")
-    .eq("id", id)
-    .eq("organizer_id", user.id)
-    .maybeSingle();
-  if (!data) notFound();
-  const event = data as EventRow;
+  const { event } = await requireEventAccess(id, ADMIN_ROLES);
 
   const start = utcToZoned(event.start_at, event.timezone);
   const end = utcToZoned(event.end_at, event.timezone);

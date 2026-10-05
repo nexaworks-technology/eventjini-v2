@@ -10,7 +10,7 @@ export default async function NewEventPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user || user.is_anonymous) redirect("/login");
 
   return (
     <main className="min-h-screen space-y-6 px-4 py-10">
