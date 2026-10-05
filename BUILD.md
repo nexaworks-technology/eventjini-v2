@@ -466,3 +466,9 @@ Status: In progress (usage limit reached mid-verification). No schema, RLS, RPC,
 - Orange brand is scoped to a `.landing` wrapper in globals.css; the app and event pages keep their own themes. Product visuals are markup-built mocks with sample data (no stock photos).
 - FAQ copy matches current behaviour (scanner needs a connection; custom fields; data ownership).
 - Verified: desktop and 375px render, no horizontal overflow. Not verified: dark mode on the landing, full keyboard/contrast pass.
+
+## One orange theme (post-P7)
+
+- App-wide tokens in globals.css are now the orange brand (light + dark); the `.landing` override is gone. Same orange in PWA `theme_color`, offline page, icons/favicon, brand mark, and as the default for events and emails with no custom colour (`DEFAULT_PRIMARY` = #C2410C).
+- Event-specific brand colours still apply only on public event pages and in that event's emails.
+- Verified: light and dark rendering of home, dashboard overview, analytics and sponsors. Chart palette is now orange + warm neutrals + amber/clay (no blue/cyan/magenta). Not re-checked: every remaining page, a formal contrast audit.

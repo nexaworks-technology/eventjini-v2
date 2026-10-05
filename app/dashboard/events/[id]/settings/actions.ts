@@ -25,7 +25,7 @@ export async function saveBranding(eventId: string, primary: string, accent: str
 
   const p = primary.trim() ? normalizeHex(primary) : null;
   const a = accent.trim() ? normalizeHex(accent) : null;
-  if (primary.trim() && !p) return { ok: false, error: "Primary color must be a hex value like #111827." };
+  if (primary.trim() && !p) return { ok: false, error: "Primary color must be a hex value like #C2410C." };
   if (accent.trim() && !a) return { ok: false, error: "Accent color must be a hex value like #F97316." };
   if (!(CURRENCIES as readonly string[]).includes(currency)) return { ok: false, error: "Choose a supported currency." };
 

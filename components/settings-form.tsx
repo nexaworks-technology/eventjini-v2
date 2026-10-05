@@ -76,7 +76,7 @@ export function SettingsForm({
 
   function saveBrand() {
     setBrandMsg(null);
-    if (!HEX_RE.test(pc) || !HEX_RE.test(ac)) { setBrandMsg({ ok: false, text: "Colors must be hex values like #111827." }); return; }
+    if (!HEX_RE.test(pc) || !HEX_RE.test(ac)) { setBrandMsg({ ok: false, text: "Colors must be hex values like #C2410C." }); return; }
     startBrand(async () => {
       const r = await saveBranding(eventId, pc, ac, cur);
       setBrandMsg(r.ok ? { ok: true, text: "Branding saved." } : { ok: false, text: r.error });

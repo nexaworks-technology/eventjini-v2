@@ -48,7 +48,7 @@ export default async function Home() {
   const cta = cn(buttonVariants({ size: "lg" }), "h-12 px-7 text-base font-semibold");
 
   return (
-    <div className="landing flex min-h-dvh flex-col bg-background text-foreground">
+    <div className="flex min-h-dvh flex-col bg-background text-foreground">
       <MarketingHeader signedIn={signedIn} />
 
       <main className="flex-1">
@@ -141,7 +141,7 @@ export default async function Home() {
         </section>
 
         {/* Pilot */}
-        <section id="pilot" className="scroll-mt-16 bg-neutral-950 text-white">
+        <section id="pilot" className="scroll-mt-16 bg-[oklch(0.17_0.01_60)] text-white">
           <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[1fr_1.2fr]">
             <MarketingImage
               name="pilot" alt="An event crowd" width={1400} height={800} frame={false} className="hidden rounded-2xl lg:block"
@@ -152,7 +152,7 @@ export default async function Home() {
               <h2 className="font-heading text-3xl font-bold tracking-tight">Free for pilot customers.</h2>
               <p className="max-w-lg text-white/75">We&apos;re working with a limited number of event organizers to use EventJini for free and help us improve the product.</p>
               <div className="flex flex-wrap items-center gap-4 pt-1">
-                <Link href={primaryHref} className="inline-flex h-12 items-center rounded-lg bg-[oklch(0.62_0.18_42)] px-7 text-base font-semibold text-neutral-950 transition-opacity hover:opacity-90">{primaryLabel}</Link>
+                <Link href={primaryHref} className="inline-flex h-12 items-center rounded-lg bg-primary px-7 text-base font-semibold text-primary-foreground transition-opacity hover:opacity-90">{primaryLabel}</Link>
                 <span className="text-sm text-white/60">No payments. No subscriptions.</span>
               </div>
             </div>

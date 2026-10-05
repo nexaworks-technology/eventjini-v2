@@ -1,8 +1,8 @@
 import type { CSSProperties } from "react";
 
 export const HEX_RE = /^#[0-9A-Fa-f]{6}$/;
-export const DEFAULT_PRIMARY = "#111827";
-export const DEFAULT_ACCENT = "#111827";
+export const DEFAULT_PRIMARY = "#C2410C";
+export const DEFAULT_ACCENT = "#C2410C";
 
 export function normalizeHex(v: string | null | undefined): string | null {
   const t = (v ?? "").trim();

@@ -10,7 +10,7 @@ export function BrandMark({ className }: { className?: string }) {
         <rect x="5" y="10.5" width="10" height="3" rx="1" />
         <rect x="5" y="17" width="12" height="3" rx="1" />
       </svg>
-      <span className="absolute -right-0.5 -bottom-0.5 size-2 rounded-full bg-[oklch(0.75_0.17_55)] ring-2 ring-background" />
+      <span className="absolute -right-0.5 -bottom-0.5 size-2 rounded-full bg-foreground ring-2 ring-background" />
     </span>
   );
 }
