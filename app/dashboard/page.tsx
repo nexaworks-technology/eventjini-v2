@@ -10,6 +10,9 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user || user.is_anonymous) redirect("/login");
 
+  const { data: portalData } = await supabase.rpc("my_sponsor_portals");
+  const portals = (Array.isArray(portalData) ? portalData : []) as { id: string; company_name: string; event_title: string; tier_name: string; claimed: boolean }[];
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("full_name")
@@ -33,6 +36,21 @@ export default async function DashboardPage() {
         >
           Your events
         </Link>
+        {portals.length > 0 && (
+          <div className="space-y-2 rounded-md border border-zinc-200 p-3">
+            <p className="text-sm font-medium text-zinc-900">Sponsor portals</p>
+            <ul className="space-y-1 text-sm">
+              {portals.map((p) => (
+                <li key={p.id}>
+                  <Link href={`/dashboard/sponsor/portal/${p.id}`} className="underline">
+                    {p.company_name} · {p.event_title}
+                  </Link>
+                  <span className="text-zinc-500"> ({p.tier_name}{p.claimed ? "" : ", claim pending"})</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         <SignOutButton />
       </div>
     </main>

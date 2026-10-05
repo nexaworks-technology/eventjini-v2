@@ -16,6 +16,10 @@ const ITEMS: Item[] = [
   { key: "check-in", label: "Check-in", path: "/check-in", roles: CHECKIN_ROLES },
   { key: "agenda", label: "Agenda", path: "/agenda", roles: null },
   { key: "tasks", label: "Tasks", path: "/tasks", roles: TASK_READ_ROLES },
+  { key: "sponsors", label: "Sponsors", path: "/sponsors", roles: ADMIN_ROLES },
+  { key: "communications", label: "Communications", path: "/communications", roles: ADMIN_ROLES },
+  { key: "automations", label: "Automations", path: "/automations", roles: ADMIN_ROLES },
+  { key: "analytics", label: "Analytics", path: "/analytics", roles: TASK_READ_ROLES },
   { key: "team", label: "Team", path: "/team", roles: ADMIN_ROLES },
 ];
 

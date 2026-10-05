@@ -3,6 +3,7 @@ import {
   STATUS_LABELS,
   type RegistrationRow,
 } from "@/lib/registration";
+import { LeadConsentToggle } from "@/components/lead-consent-toggle";
 import { formatShortDate } from "@/lib/time";
 import { createClient } from "@/utils/supabase/server";
 
@@ -84,6 +85,9 @@ export default async function MyTicketsPage() {
                   </a>
                 )}
               </div>
+            )}
+            {(r.status === "approved" || r.status === "checked_in") && (
+              <LeadConsentToggle registrationId={r.id} initial={r.sponsor_lead_consent} />
             )}
           </li>
         ))}

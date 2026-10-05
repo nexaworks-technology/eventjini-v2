@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 import { TICKET_CODE_RE, type RegistrationRow } from "@/lib/registration";
 import type { EventRow } from "@/lib/events";
+import { LeadConsentToggle } from "@/components/lead-consent-toggle";
 import { formatEventWhen } from "@/lib/time";
 import { createClient } from "@/utils/supabase/server";
 
@@ -57,6 +58,8 @@ export default async function TicketPage({ params }: { params: Promise<{ ticketC
         />
         <p className="font-mono text-sm tracking-wider text-zinc-900">{ticketCode}</p>
         {reg.status === "checked_in" && <p className="text-sm font-medium text-green-700">Checked in</p>}
+
+        <LeadConsentToggle registrationId={reg.id} initial={reg.sponsor_lead_consent} />
 
         <div className="flex flex-col gap-2">
           <a

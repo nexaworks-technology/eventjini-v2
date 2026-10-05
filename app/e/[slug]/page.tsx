@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PageViewTracker } from "@/components/page-view-tracker";
 import { getPublishedEvent, getViewerState } from "@/lib/public-event";
 import { formatEventWhen } from "@/lib/time";
 import { createClient } from "@/utils/supabase/server";
@@ -23,6 +24,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
     .eq("event_id", event.id)
     .order("start_at");
   const sessions = sessionRows ?? [];
+  const { count: tierCount } = await supabase.from("sponsorship_tiers").select("id", { count: "exact", head: true }).eq("event_id", event.id);
 
   let cta: React.ReactNode;
   if (registration?.status === "approved" || registration?.status === "checked_in") {
@@ -65,6 +67,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
 
   return (
     <main className="min-h-screen bg-zinc-50">
+      <PageViewTracker eventId={event.id} />
       <div className="mx-auto max-w-3xl bg-white shadow-sm">
         {event.cover_image_url && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -106,6 +109,13 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
           )}
 
           <div className="border-t border-zinc-100 pt-6">{cta}</div>
+
+          {(tierCount ?? 0) > 0 && (
+            <p className="text-sm text-zinc-600">
+              Interested in sponsoring?{" "}
+              <Link href={`/e/${event.slug}/sponsors`} className="font-medium text-zinc-900 underline">View sponsorship opportunities</Link>
+            </p>
+          )}
         </div>
       </div>
     </main>

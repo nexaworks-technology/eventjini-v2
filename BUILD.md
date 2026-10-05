@@ -257,3 +257,120 @@ Status: Complete. Permission layer verified live (121 checks); camera QR scan, C
 
 ### Bug found and fixed during verification
 - Camera view stayed blank: the scanner container was `display:none` while `html5-qrcode` started, so the library measured a zero-width box. The container is now always rendered. Verified: container is 496px wide on start and the camera-denied fallback appears when permission is blocked.
+
+## P4 — Communications & Analytics
+
+Status: Verified live against Supabase, the Next.js server, Resend and a public tunnel (113-check suite: 111 passed, the 2 "failures" were test-script mistakes, re-verified by hand). Follow-up migration `20261005060000_refresh_broadcast_status_on_webhook.sql` must be applied.
+
+### Setup required before testing
+1. Run `supabase/migrations/20261005050000_create_communications_analytics.sql` in the SQL Editor.
+2. In `.env.local` fill (all server-only): `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (a sender on a Resend-verified domain), `RESEND_WEBHOOK_SECRET`, `CRON_SECRET` (any long random string), `SUPABASE_SERVICE_ROLE_KEY`.
+3. In Resend, add a webhook pointing at `https://<public-host>/api/webhooks/resend` for the `email.*` events (locally this needs a tunnel such as ngrok) and copy its signing secret to `RESEND_WEBHOOK_SECRET`.
+4. Something must call `GET /api/cron/email-worker` and `GET /api/cron/automations` with `Authorization: Bearer $CRON_SECRET` about every 5 minutes (Vercel Cron, GitHub Actions or similar). Broadcasts also send immediately when Send is clicked.
+
+### Resend
+- [x] resend package installed
+- [x] RESEND_API_KEY server-only (`lib/email/resend.ts` imports `server-only`; no client import path)
+- [~] sender: using Resend's `onboarding@resend.dev` test sender (delivers only to the account owner's address); verify a domain before real use
+- [x] server email helper (`lib/email/resend.ts`, `lib/email/worker.ts`)
+- [x] email worker (`/api/cron/email-worker`, also invoked after Send)
+- [x] webhook verification (`resend.webhooks.verify`, Svix signature) — untested live
+- [x] delivery status updates (`apply_email_event`: delivered only after sent; idempotent) — untested live
+
+### Broadcasts
+- [x] event_broadcasts migration, compose UI, approved / pending / checked-in segments, recipient preview count
+- [x] recipient snapshot into `email_deliveries` in one transaction (`queue_broadcast`)
+- [x] duplicate-send protection (`unique(event_id, request_id)` and `unique(broadcast_id, registration_id)`)
+- [x] delivery log with filters, retry of failed rows only, partial-failure status
+- [x] unknown template variables rejected in the UI, server action and database
+
+### Automations
+- [x] event_automations + automation_runs migrations; registration-approved trigger (database trigger on pending → approved); 24h-before trigger (`queue_event_reminders`, cron); send-email action
+- [x] enable / disable (new automations default to disabled), idempotent runs via `unique(automation_id, trigger_key)`, run history, cron secret protection
+
+### Attribution
+- [x] event_page_views, `ej_visitor_id` cookie (httpOnly, SameSite=Lax), UTM + referrer capture through `/api/events/[id]/track`, event-scoped
+- [x] registration_attribution with first and last touch computed in the database from the visitor's own recorded visits (the browser cannot submit a source)
+
+### Analytics
+- [x] page views, unique visitors, registrations, registrations per day (event timezone), checked-in count and rate = checked_in ÷ (approved + checked_in), source breakdown with conversion, viewer read access, scanner none
+
+### Decisions
+- The email worker, Resend webhook and tracking endpoint have no signed-in user, so they use a **server-only** `SUPABASE_SERVICE_ROLE_KEY` (`lib/supabase/admin.ts`, `import "server-only"`). This is a deliberate exception to the P0 note "no service-role key in the frontend project"; the key is never exposed to the browser and never prefixed `NEXT_PUBLIC_`. The privileged SQL functions are executable by `service_role` only.
+- Broadcasts have no browser write policy at all, so they are immutable after queueing.
+- The approval automation fires on a genuine pending → approved transition. Open-registration events auto-approve on creation (no transition), so they do not trigger it.
+- Plain-text messages are wrapped in a simple branded HTML email; variables are resolved per recipient on the server.
+
+### Verification
+- [x] production build passes
+- [x] Resend / service-role / cron / webhook secret names and values absent from the client bundle (grep of `.next/static`: 0 files)
+- [x] broadcast sends to correct segment (only Approved snapshotted; pending/rejected/checked-in excluded; real send via the UI)
+- [x] delivery webhook updates status (real Resend webhooks through a Cloudflare tunnel: sent -> delivered / failed / bounced; invalid, unsigned and replayed signatures rejected; duplicates idempotent)
+- [x] approval automation sends once (one run, one email; repeat approval refused)
+- [x] reminder automation sends once (Approved + Checked-in only; second cron run queues nothing; disabled rule creates nothing)
+- [x] UTM view recorded (UI visit and API; one visitor cookie reused)
+- [x] conversion attributed correctly (real browser visit with UTMs then UI registration credited to LinkedIn; last touch ignores other events)
+- [x] cross-event analytics blocked (organizer B, viewer, scanner and guests denied on broadcasts, deliveries, automations, runs, views, attribution)
+
+### Bugs found and fixed during verification
+- A webhook-reported failure left the broadcast header at `sent`. `apply_email_event` now recomputes the broadcast status (migration 060).
+- Analytics conversion could exceed 100% for Direct (registrations that predate tracking). It now shows a dash when registrations exceed recorded views.
+
+### Not verified
+- A domain-verified sender (Resend's test sender only delivers to the account owner).
+- The cron routes being invoked by a real scheduler (they were called manually with the secret).
+- Scheduled reminder arrival 24h before a real event (simulated with an event 20h away).
+
+## P5 — Sponsors
+
+Status: Complete. Verified live: 117-check database/RLS suite passed; camera QR scan and CSV download confirmed working by the user. Remember to turn on Supabase "Confirm email" before production.
+
+### Setup required before testing
+1. Run `supabase/migrations/20261005070000_create_sponsor_system.sql` in the SQL Editor.
+2. **Security note:** the sponsor-portal claim rule compares the signed-in account's email with the application's `contact_email` and requires `email_confirmed_at`. With Supabase "Confirm email" turned OFF (as in this dev project) every signup is auto-confirmed, so anyone could register with someone else's address and claim their portal. Turn "Confirm email" ON before using sponsors in production.
+
+### Sponsorship tiers
+- [x] sponsorship_tiers migration (benefits `text[]`, `sort_order`, `price_display` text only)
+- [x] tier create / edit / delete / reorder (move up/down, atomic `reorder_sponsorship_tiers`)
+- [x] public tier display on `/e/[slug]/sponsors` (no payment or checkout anywhere)
+- [x] organizer RLS (owner/admin write; public read only for published events)
+- [x] a tier referenced by an application cannot be deleted (FK without cascade, friendly error)
+
+### Applications
+- [x] sponsor_registration_status enum, sponsor_registrations migration
+- [x] public application via `create_sponsor_application()` (browser never sets status or sponsor_user_id; no direct insert policy)
+- [x] organizer list with filters, approve / reject (`decide_sponsor_application`), rejected rows kept
+- [x] one open application per contact email per event
+
+### Sponsor portal
+- [x] claim: signed-in confirmed email must match `contact_email` and the application must be approved (`claim_sponsor_portal`); event owner/admin role does not grant portal access
+- [x] portal route with pending / rejected / not-found states, company name + logo URL editing through `update_sponsor_profile` (tier, event, status, contact email cannot change)
+- [x] sponsor portals listed on `/dashboard` for sponsors
+
+### Lead capture
+- [x] sponsor_leads migration (snapshot of consented fields; attendee_registration_id hidden by column privileges)
+- [x] attendee consent toggle on the ticket page and My Tickets (`registrations.sponsor_lead_consent` + timestamp, default off)
+- [x] QR scanner (camera, explicit start, denied-camera fallback) + manual ticket code
+- [x] `capture_sponsor_lead()`: same-event, active-attendee and consent checks, duplicate prevention, returns only first/last name, email, company, job title
+- [x] lead notes (`update_sponsor_lead_notes`)
+
+### Leads
+- [x] leads list, search (name, email, company, job title), detail with notes
+- [x] CSV export `/api/sponsor/portal/[id]/leads.csv` (owner-checked in the route; columns: First Name, Last Name, Email, Company, Job Title, Notes, Captured At)
+
+### Decisions
+- Sponsors never read `registrations`; the capture function copies only the five consented fields into `sponsor_leads` at scan time. Revoking consent later blocks new scans but does not delete leads already captured.
+- Organizers cannot read sponsor leads or notes (not required by the brief).
+- Direct reads on `sponsor_leads` use explicit columns because `select=*` would include the hidden attendee id and is refused.
+
+### Verification
+- [x] public sponsor application (no login; status always pending; direct inserts denied)
+- [x] organizer approval / rejection (other organizers refused; rejected kept; no re-decision)
+- [x] sponsor portal claim (case-insensitive email match; wrong email, event owner, other organizer and guests refused)
+- [x] Sponsor A cannot access Sponsor B (registrations, leads, notes, profile, capture)
+- [x] QR lead capture (RPC verified; real camera scan confirmed by the user)
+- [x] consent rejection (no_consent returns no data; revoke blocks new scans)
+- [x] wrong-event rejection (no data returned)
+- [x] duplicate scan protection (6 parallel scans -> exactly one lead)
+- [x] CSV export (confirmed working by the user)
+- [x] production build passes

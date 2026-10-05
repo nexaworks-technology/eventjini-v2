@@ -1,5 +1,7 @@
 "use server";
 
+import { cookies } from "next/headers";
+import { VISITOR_COOKIE } from "@/lib/analytics";
 import {
   normalizeSpaces,
   UUID_RE,
@@ -76,6 +78,13 @@ export async function submitRegistration(
     return { ok: false, error: GENERIC };
   }
 
-  const result = data as { status: RegistrationStatus; ticket_code: string | null };
+  const result = data as { registration_id: string; status: RegistrationStatus; ticket_code: string | null };
+
+  const visitor = (await cookies()).get(VISITOR_COOKIE)?.value;
+  await supabase.rpc("record_registration_attribution", {
+    p_registration_id: result.registration_id,
+    p_visitor_id: visitor && UUID_RE.test(visitor) ? visitor : null,
+  });
+
   return { ok: true, status: result.status, ticketCode: result.ticket_code };
 }
