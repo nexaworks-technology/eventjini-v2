@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirm } from "@/components/eventjini/confirm-dialog";
+import { btnPrimarySm } from "@/components/eventjini/classes";
 import { useState } from "react";
 import {
   createTask,
@@ -44,6 +46,7 @@ function applyMove(tasks: Task[], id: string, toStatus: TaskStatus, toIndex: num
 export function TaskBoard({ eventId, initialTasks, canEdit }: { eventId: string; initialTasks: Task[]; canEdit: boolean }) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [error, setError] = useState<string | null>(null);
+  const confirm = useConfirm();
   const [newTitle, setNewTitle] = useState("");
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -90,7 +93,7 @@ export function TaskBoard({ eventId, initialTasks, canEdit }: { eventId: string;
   }
 
   async function remove(id: string) {
-    if (!window.confirm("Delete this task?")) return;
+    if (!await confirm({ title: "Delete this task?", destructive: true })) return;
     const r = await deleteTask(eventId, id);
     if (!r.ok) {
       setError(r.error);
@@ -102,11 +105,11 @@ export function TaskBoard({ eventId, initialTasks, canEdit }: { eventId: string;
   return (
     <div className="space-y-4">
       {error && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
       )}
-      {!canEdit && <p className="text-sm text-zinc-500">You have read-only access to this board.</p>}
+      {!canEdit && <p className="text-sm text-muted-foreground">You have read-only access to this board.</p>}
 
       <div className="grid gap-4 md:grid-cols-3">
         {COLUMNS.map((col, ci) => (
@@ -119,10 +122,10 @@ export function TaskBoard({ eventId, initialTasks, canEdit }: { eventId: string;
               if (canEdit && dragId) void move(dragId, col.key, cols[col.key].length);
               setDragId(null);
             }}
-            className="min-h-40 space-y-3 rounded-xl bg-zinc-100 p-3"
+            className="min-h-40 space-y-3 rounded-xl bg-muted p-3"
           >
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              {col.label} <span className="text-zinc-400">{cols[col.key].length}</span>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {col.label} <span className="text-muted-foreground">{cols[col.key].length}</span>
             </h3>
 
             {cols[col.key].map((t, i) => (
@@ -138,45 +141,47 @@ export function TaskBoard({ eventId, initialTasks, canEdit }: { eventId: string;
                   if (canEdit && dragId && dragId !== t.id) void move(dragId, col.key, i);
                   setDragId(null);
                 }}
-                className={`space-y-2 rounded-lg bg-white p-3 shadow-sm ${canEdit ? "cursor-grab" : ""} ${dragId === t.id ? "opacity-50" : ""}`}
+                className={`space-y-2 rounded-lg bg-card p-3 shadow-sm ${canEdit ? "cursor-grab" : ""} ${dragId === t.id ? "opacity-50" : ""}`}
               >
                 {editingId === t.id ? (
                   <div className="space-y-2">
                     <input
+                      aria-label="Task title"
                       value={draft.title}
                       onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
-                      className="w-full rounded-md border border-zinc-300 px-2 py-1 text-sm"
+                      className="w-full rounded-md border border-border px-2 py-1 text-sm"
                     />
                     <textarea
+                      aria-label="Task description"
                       value={draft.description}
                       onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
                       rows={2}
-                      className="w-full rounded-md border border-zinc-300 px-2 py-1 text-sm"
+                      className="w-full rounded-md border border-border px-2 py-1 text-sm"
                     />
                     <div className="flex gap-2 text-xs">
-                      <button type="button" onClick={() => saveEdit(t.id)} className="rounded bg-zinc-900 px-2 py-1 text-white">Save</button>
+                      <button type="button" onClick={() => saveEdit(t.id)} className={btnPrimarySm}>Save</button>
                       <button type="button" onClick={() => setEditingId(null)} className="underline">Cancel</button>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm font-medium text-zinc-900">{t.title}</p>
-                    {t.description && <p className="whitespace-pre-line text-xs text-zinc-600">{t.description}</p>}
+                    <p className="text-sm font-medium text-foreground">{t.title}</p>
+                    {t.description && <p className="whitespace-pre-line text-xs text-muted-foreground">{t.description}</p>}
                   </>
                 )}
 
                 {canEdit && editingId !== t.id && (
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-600">
-                    <button type="button" aria-label={`Move ${t.title} up`} disabled={i === 0} onClick={() => move(t.id, col.key, i - 1)} className="rounded border border-zinc-200 px-1.5 disabled:opacity-30">↑</button>
-                    <button type="button" aria-label={`Move ${t.title} down`} disabled={i === cols[col.key].length - 1} onClick={() => move(t.id, col.key, i + 1)} className="rounded border border-zinc-200 px-1.5 disabled:opacity-30">↓</button>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <button type="button" aria-label={`Move ${t.title} up`} disabled={i === 0} onClick={() => move(t.id, col.key, i - 1)} className="rounded border border-border px-1.5 disabled:opacity-30">↑</button>
+                    <button type="button" aria-label={`Move ${t.title} down`} disabled={i === cols[col.key].length - 1} onClick={() => move(t.id, col.key, i + 1)} className="rounded border border-border px-1.5 disabled:opacity-30">↓</button>
                     {ci > 0 && (
-                      <button type="button" aria-label={`Move ${t.title} to ${COLUMNS[ci - 1].label}`} onClick={() => move(t.id, COLUMNS[ci - 1].key, cols[COLUMNS[ci - 1].key].length)} className="rounded border border-zinc-200 px-1.5">← {COLUMNS[ci - 1].label}</button>
+                      <button type="button" aria-label={`Move ${t.title} to ${COLUMNS[ci - 1].label}`} onClick={() => move(t.id, COLUMNS[ci - 1].key, cols[COLUMNS[ci - 1].key].length)} className="rounded border border-border px-1.5">← {COLUMNS[ci - 1].label}</button>
                     )}
                     {ci < COLUMNS.length - 1 && (
-                      <button type="button" aria-label={`Move ${t.title} to ${COLUMNS[ci + 1].label}`} onClick={() => move(t.id, COLUMNS[ci + 1].key, cols[COLUMNS[ci + 1].key].length)} className="rounded border border-zinc-200 px-1.5">{COLUMNS[ci + 1].label} →</button>
+                      <button type="button" aria-label={`Move ${t.title} to ${COLUMNS[ci + 1].label}`} onClick={() => move(t.id, COLUMNS[ci + 1].key, cols[COLUMNS[ci + 1].key].length)} className="rounded border border-border px-1.5">{COLUMNS[ci + 1].label} →</button>
                     )}
                     <button type="button" onClick={() => { setEditingId(t.id); setDraft({ title: t.title, description: t.description ?? "" }); }} className="underline">Edit</button>
-                    <button type="button" onClick={() => remove(t.id)} className="text-red-600 underline">Delete</button>
+                    <button type="button" onClick={() => remove(t.id)} className="text-destructive underline">Delete</button>
                   </div>
                 )}
               </article>
@@ -194,10 +199,11 @@ export function TaskBoard({ eventId, initialTasks, canEdit }: { eventId: string;
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   placeholder="+ Add task"
-                  className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm"
+                  aria-label="New task title"
+                  className="w-full rounded-md border border-border bg-card px-2 py-1.5 text-sm"
                 />
                 {newTitle.trim() && (
-                  <button type="submit" disabled={adding} className="rounded bg-zinc-900 px-3 py-1 text-xs font-medium text-white disabled:opacity-60">
+                  <button type="submit" disabled={adding} className={btnPrimarySm}>
                     {adding ? "Adding..." : "Add task"}
                   </button>
                 )}

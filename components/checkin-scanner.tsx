@@ -1,6 +1,9 @@
 "use client";
 
+import { btnPrimary, btnSecondarySm } from "@/components/eventjini/classes";
+import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { OFFLINE_MESSAGE, useOnline } from "@/lib/use-online";
 import {
   checkInTicket,
   searchGuestsForCheckIn,
@@ -31,11 +34,16 @@ export function CheckInScanner({ eventId }: { eventId: string }) {
   const [busy, setBusy] = useState(false);
   const [hits, setHits] = useState<GuestHit[]>([]);
   const [query, setQuery] = useState("");
+  const online = useOnline();
   const scannerRef = useRef<import("html5-qrcode").Html5Qrcode | null>(null);
   const handlingRef = useRef(false);
 
   async function submit(raw: string, method: "qr" | "manual") {
     if (handlingRef.current) return;
+    if (!navigator.onLine) {
+      setScanNote(OFFLINE_MESSAGE);
+      return;
+    }
     handlingRef.current = true;
     setBusy(true);
     setScanNote(null);
@@ -68,6 +76,10 @@ export function CheckInScanner({ eventId }: { eventId: string }) {
         { fps: 10, qrbox: { width: 240, height: 240 } },
         (text) => {
           if (handlingRef.current) return;
+          if (!navigator.onLine) {
+            setScanNote(OFFLINE_MESSAGE);
+            return;
+          }
           void submit(text, "qr");
           try {
             scanner.pause(true);
@@ -135,29 +147,34 @@ export function CheckInScanner({ eventId }: { eventId: string }) {
 
   return (
     <div className="space-y-6">
-      <section className="space-y-4 rounded-xl bg-white p-6 shadow-sm">
+      {!online && (
+        <p role="alert" className="rounded-md bg-warning/10 px-4 py-3 text-sm font-medium text-foreground">
+          {OFFLINE_MESSAGE} Check-ins are not accepted or stored while offline.
+        </p>
+      )}
+      <section className="space-y-4 rounded-xl bg-card p-6 shadow-sm">
         <div id={READER_ID} className="w-full overflow-hidden rounded-md" />
 
         {cameraState === "idle" && (
           <button
             type="button"
             onClick={startCamera}
-            className="w-full rounded-md bg-zinc-900 px-4 py-4 text-lg font-medium text-white hover:bg-zinc-700"
+            className={cn(btnPrimary, "h-auto w-full py-4 text-lg")}
           >
             Start camera
           </button>
         )}
-        {cameraState === "starting" && <p className="text-center text-zinc-600">Starting camera...</p>}
+        {cameraState === "starting" && <p className="text-center text-muted-foreground">Starting camera...</p>}
         {cameraState === "running" && (
           <div className="space-y-2 text-center">
-            <p className="text-sm text-zinc-600">Point camera at attendee QR code</p>
-            <button type="button" onClick={stopCamera} className="text-sm text-zinc-600 underline">
+            <p className="text-sm text-muted-foreground">Point camera at attendee QR code</p>
+            <button type="button" onClick={stopCamera} className="text-sm text-muted-foreground underline">
               Stop camera
             </button>
           </div>
         )}
         {cameraState === "denied" && (
-          <div role="alert" className="space-y-2 rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div role="alert" className="space-y-2 rounded-md bg-warning/10 px-4 py-3 text-sm text-foreground">
             <p className="font-medium">Camera access was denied.</p>
             <p>You can enter the ticket code manually.</p>
             <button type="button" onClick={startCamera} className="underline">
@@ -166,7 +183,7 @@ export function CheckInScanner({ eventId }: { eventId: string }) {
           </div>
         )}
         {cameraState === "unavailable" && (
-          <div role="alert" className="space-y-2 rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div role="alert" className="space-y-2 rounded-md bg-warning/10 px-4 py-3 text-sm text-foreground">
             <p className="font-medium">The camera could not be started.</p>
             <p>You can enter the ticket code manually.</p>
             <button type="button" onClick={startCamera} className="underline">
@@ -180,10 +197,10 @@ export function CheckInScanner({ eventId }: { eventId: string }) {
             role="status"
             className={`space-y-1 rounded-md px-4 py-5 text-center ${
               outcome.result === "success"
-                ? "bg-green-50 text-green-900"
+                ? "bg-success/10 text-success"
                 : outcome.result === "already_checked_in"
-                  ? "bg-amber-50 text-amber-900"
-                  : "bg-red-50 text-red-800"
+                  ? "bg-warning/10 text-foreground"
+                  : "bg-destructive/10 text-destructive"
             }`}
           >
             {ok && outcome && "firstName" in outcome ? (
@@ -208,60 +225,62 @@ export function CheckInScanner({ eventId }: { eventId: string }) {
               <button
                 type="button"
                 onClick={scanNext}
-                className="mt-3 rounded-md bg-zinc-900 px-5 py-2 text-sm font-medium text-white hover:bg-zinc-700"
+                className={cn(btnPrimary, "mt-3")}
               >
                 Scan next
               </button>
             )}
           </div>
         )}
-        {scanNote && <p className="text-center text-sm text-zinc-600">{scanNote}</p>}
+        {scanNote && <p className="text-center text-sm text-muted-foreground">{scanNote}</p>}
       </section>
 
-      <section className="space-y-3 rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="font-semibold text-zinc-900">Enter ticket code manually</h2>
+      <section className="space-y-3 rounded-xl bg-card p-6 shadow-sm">
+        <h2 className="font-semibold text-foreground">Enter ticket code manually</h2>
         <form onSubmit={onManual} className="space-y-3">
           <input
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="EVJ-7F8D5D2B93B84A71"
+            aria-label="Ticket code"
             autoComplete="off"
             autoCapitalize="characters"
-            className="w-full rounded-md border border-zinc-300 px-3 py-3 font-mono text-zinc-900 focus:border-zinc-900 focus:outline-none"
+            className="w-full rounded-md border border-border px-3 py-3 font-mono text-foreground focus:border-ring focus:outline-none"
           />
           <button
             type="submit"
-            disabled={busy || !code.trim()}
-            className="w-full rounded-md bg-zinc-900 px-4 py-3 font-medium text-white hover:bg-zinc-700 disabled:opacity-60"
+            disabled={busy || !online || !code.trim()}
+            className={cn(btnPrimary, "h-auto w-full py-3")}
           >
             {busy ? "Checking..." : "Check in"}
           </button>
         </form>
 
-        <div className="space-y-2 border-t border-zinc-100 pt-3">
-          <label className="block text-sm font-medium text-zinc-700">Or find a guest by name</label>
+        <div className="space-y-2 border-t border-border pt-3">
+          <label className="block text-sm font-medium text-foreground">Or find a guest by name</label>
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Name, company or email"
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none"
+            aria-label="Find a guest by name, company or email"
+            className="w-full rounded-md border border-border px-3 py-2 text-sm focus:border-ring focus:outline-none"
           />
           {query.trim().length >= 2 && hits.length > 0 && (
-            <ul className="divide-y divide-zinc-100 rounded-md border border-zinc-200">
+            <ul className="divide-y divide-border rounded-md border border-border">
               {hits.map((h) => (
                 <li key={h.ticket_code} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
                   <span>
-                    <span className="font-medium text-zinc-900">
+                    <span className="font-medium text-foreground">
                       {h.first_name} {h.last_name}
                     </span>
-                    {h.company_name && <span className="text-zinc-600"> · {h.company_name}</span>}
-                    {h.status === "checked_in" && <span className="ml-2 text-xs text-amber-700">checked in</span>}
+                    {h.company_name && <span className="text-muted-foreground"> · {h.company_name}</span>}
+                    {h.status === "checked_in" && <span className="ml-2 text-xs text-foreground">checked in</span>}
                   </span>
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() => submit(h.ticket_code, "manual")}
-                    className="rounded-md border border-zinc-300 px-3 py-1 text-xs font-medium hover:bg-zinc-50 disabled:opacity-60"
+                    className={btnSecondarySm}
                   >
                     Check in
                   </button>

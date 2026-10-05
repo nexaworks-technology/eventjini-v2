@@ -1,5 +1,7 @@
 "use client";
 
+import { useConfirm } from "@/components/eventjini/confirm-dialog";
+import { btnPrimary, btnSecondarySm, inputCls } from "@/components/eventjini/classes";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteSession, saveSession, type SessionInput } from "@/app/dashboard/events/[id]/agenda/actions";
@@ -14,8 +16,6 @@ export type AgendaItem = {
   form: SessionInput;
 };
 
-const inputCls =
-  "w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none";
 
 export function AgendaEditor({
   eventId,
@@ -28,6 +28,7 @@ export function AgendaEditor({
   canEdit: boolean;
   defaultDate: string;
 }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const [editing, setEditing] = useState<string | "new" | null>(null);
   const [form, setForm] = useState<SessionInput | null>(null);
@@ -58,8 +59,8 @@ export function AgendaEditor({
     });
   }
 
-  function remove(id: string) {
-    if (!window.confirm("Delete this session?")) return;
+  async function remove(id: string) {
+    if (!await confirm({ title: "Delete this session?", destructive: true })) return;
     startTransition(async () => {
       const r = await deleteSession(eventId, id);
       setMessage(r.ok ? null : { kind: "error", text: r.error });
@@ -68,29 +69,29 @@ export function AgendaEditor({
   }
 
   const formUi = form && (
-    <div className="space-y-3 rounded-md border border-zinc-300 bg-zinc-50 p-4">
-      <input className={inputCls} placeholder="Title *" value={form.title} onChange={(e) => set("title", e.target.value)} />
+    <div className="space-y-3 rounded-md border border-border bg-muted/40 p-4">
+      <input className={inputCls} aria-label="Session title" placeholder="Title *" value={form.title} onChange={(e) => set("title", e.target.value)} />
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="space-y-1 text-xs text-zinc-600">Start date *
+        <label className="space-y-1 text-xs text-muted-foreground">Start date *
           <input type="date" className={inputCls} value={form.startDate} onChange={(e) => set("startDate", e.target.value)} />
         </label>
-        <label className="space-y-1 text-xs text-zinc-600">Start time *
+        <label className="space-y-1 text-xs text-muted-foreground">Start time *
           <input type="time" className={inputCls} value={form.startTime} onChange={(e) => set("startTime", e.target.value)} />
         </label>
-        <label className="space-y-1 text-xs text-zinc-600">End date *
+        <label className="space-y-1 text-xs text-muted-foreground">End date *
           <input type="date" className={inputCls} value={form.endDate} onChange={(e) => set("endDate", e.target.value)} />
         </label>
-        <label className="space-y-1 text-xs text-zinc-600">End time *
+        <label className="space-y-1 text-xs text-muted-foreground">End time *
           <input type="time" className={inputCls} value={form.endTime} onChange={(e) => set("endTime", e.target.value)} />
         </label>
       </div>
-      <input className={inputCls} placeholder="Speaker" value={form.speaker} onChange={(e) => set("speaker", e.target.value)} />
-      <textarea className={inputCls} rows={3} placeholder="Description" value={form.description} onChange={(e) => set("description", e.target.value)} />
+      <input className={inputCls} aria-label="Speaker" placeholder="Speaker" value={form.speaker} onChange={(e) => set("speaker", e.target.value)} />
+      <textarea className={inputCls} rows={3} aria-label="Session description" placeholder="Description" value={form.description} onChange={(e) => set("description", e.target.value)} />
       <div className="flex gap-2">
-        <button type="button" onClick={save} disabled={pending} className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60">
+        <button type="button" onClick={save} disabled={pending} className={btnPrimary}>
           {pending ? "Saving..." : "Save session"}
         </button>
-        <button type="button" onClick={() => { setEditing(null); setForm(null); setMessage(null); }} className="rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-white">
+        <button type="button" onClick={() => { setEditing(null); setForm(null); setMessage(null); }} className="rounded-md border border-border px-4 py-2 text-sm hover:bg-card">
           Cancel
         </button>
       </div>
@@ -100,34 +101,34 @@ export function AgendaEditor({
   return (
     <div className="space-y-4">
       {message && (
-        <p role="alert" className={`rounded-md px-3 py-2 text-sm ${message.kind === "error" ? "bg-red-50 text-red-700" : message.kind === "warn" ? "bg-amber-50 text-amber-900" : "bg-green-50 text-green-800"}`}>
+        <p role="alert" className={`rounded-md px-3 py-2 text-sm ${message.kind === "error" ? "bg-destructive/10 text-destructive" : message.kind === "warn" ? "bg-warning/10 text-foreground" : "bg-success/10 text-success"}`}>
           {message.text}
         </p>
       )}
 
       {items.length === 0 && editing !== "new" && (
-        <div className="rounded-xl bg-white p-8 text-center text-zinc-600 shadow-sm">No sessions yet.</div>
+        <div className="rounded-xl bg-card p-8 text-center text-muted-foreground shadow-sm">No sessions yet.</div>
       )}
 
       {items.map((s, idx) => {
-        const header = idx === 0 || items[idx - 1].dateLabel !== s.dateLabel ? <h3 className="pt-2 text-sm font-semibold text-zinc-500">{s.dateLabel}</h3> : null;
+        const header = idx === 0 || items[idx - 1].dateLabel !== s.dateLabel ? <h3 className="pt-2 text-sm font-semibold text-muted-foreground">{s.dateLabel}</h3> : null;
         return (
           <div key={s.id} className="space-y-2">
             {header}
             {editing === s.id ? (
               formUi
             ) : (
-              <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl bg-white p-4 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl bg-card p-4 shadow-sm">
                 <div>
-                  <p className="text-sm text-zinc-500">{s.timeLabel}</p>
-                  <p className="font-medium text-zinc-900">{s.title}</p>
-                  {s.speaker && <p className="text-sm text-zinc-700">{s.speaker}</p>}
-                  {s.description && <p className="whitespace-pre-line text-sm text-zinc-600">{s.description}</p>}
+                  <p className="text-sm text-muted-foreground">{s.timeLabel}</p>
+                  <p className="font-medium text-foreground">{s.title}</p>
+                  {s.speaker && <p className="text-sm text-foreground">{s.speaker}</p>}
+                  {s.description && <p className="whitespace-pre-line text-sm text-muted-foreground">{s.description}</p>}
                 </div>
                 {canEdit && (
                   <div className="flex gap-3 text-sm">
                     <button type="button" onClick={() => open(s.id, s.form)} className="underline">Edit</button>
-                    <button type="button" onClick={() => remove(s.id)} disabled={pending} className="text-red-600 underline">Delete</button>
+                    <button type="button" onClick={() => remove(s.id)} disabled={pending} className="text-destructive underline">Delete</button>
                   </div>
                 )}
               </div>
@@ -141,7 +142,7 @@ export function AgendaEditor({
         <button
           type="button"
           onClick={() => open("new", { title: "", description: "", speaker: "", startDate: defaultDate, startTime: "", endDate: defaultDate, endTime: "" })}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+          className={btnSecondarySm}
         >
           + Add session
         </button>

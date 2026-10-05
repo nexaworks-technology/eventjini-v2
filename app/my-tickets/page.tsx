@@ -1,21 +1,20 @@
+import { CalendarDays, CalendarPlus, MapPin, Ticket } from "lucide-react";
 import Link from "next/link";
-import {
-  STATUS_LABELS,
-  type RegistrationRow,
-} from "@/lib/registration";
+import { EmptyState } from "@/components/eventjini/empty-state";
+import { FormMessage } from "@/components/eventjini/form-feedback";
+import { PageHeader } from "@/components/eventjini/page-header";
+import { PublicHeader } from "@/components/eventjini/public-header";
+import { StatusBadge } from "@/components/eventjini/status-badge";
 import { LeadConsentToggle } from "@/components/lead-consent-toggle";
+import { buttonVariants } from "@/components/ui/button";
+import { STATUS_LABELS, type RegistrationRow } from "@/lib/registration";
 import { formatShortDate } from "@/lib/time";
 import { createClient } from "@/utils/supabase/server";
 
+export const metadata = { title: "My Tickets" };
+
 type Item = RegistrationRow & {
-  events: {
-    id: string;
-    title: string;
-    slug: string;
-    start_at: string;
-    timezone: string;
-    location: string | null;
-  } | null;
+  events: { id: string; title: string; slug: string; start_at: string; timezone: string; location: string | null } | null;
 };
 
 export default async function MyTicketsPage() {
@@ -37,61 +36,47 @@ export default async function MyTicketsPage() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-2xl space-y-6 px-4 py-10">
-      <div>
-        <p className="text-sm font-semibold tracking-wide text-zinc-500">EventJini</p>
-        <h1 className="text-2xl font-semibold text-zinc-900">My Tickets</h1>
-      </div>
+    <div className="min-h-dvh bg-muted/40">
+      <PublicHeader />
+      <main className="mx-auto max-w-2xl space-y-6 px-4 py-8">
+        <PageHeader title="My Tickets" description="Tickets and applications registered in this browser." />
 
-      {failed && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-          Could not load your tickets. Please refresh and try again.
-        </p>
-      )}
+        {failed && <FormMessage>Could not load your tickets. Please refresh and try again.</FormMessage>}
+        {!failed && items.length === 0 && (
+          <EmptyState icon={Ticket} title="No tickets yet" description="Tickets you register for in this browser will appear here." />
+        )}
 
-      {!failed && items.length === 0 && (
-        <div className="rounded-xl bg-white p-8 text-center text-zinc-600 shadow-sm">
-          You don&apos;t have any tickets in this browser yet.
-        </div>
-      )}
-
-      <ul className="space-y-3">
-        {items.map((r) => (
-          <li key={r.id} className="space-y-2 rounded-xl bg-white p-5 shadow-sm">
-            <div>
-              <p className="font-medium text-zinc-900">{r.events?.title ?? "Event"}</p>
-              {r.events && (
-                <p className="text-sm text-zinc-600">
-                  {formatShortDate(r.events.start_at, r.events.timezone)}
-                  {r.events.location ? ` • ${r.events.location}` : ""}
-                </p>
-              )}
-            </div>
-            <p className="text-sm font-medium text-zinc-700">{STATUS_LABELS[r.status]}</p>
-            {(r.status === "approved" || r.status === "checked_in") && r.ticket_code && (
-              <div className="flex gap-3 text-sm">
-                <Link
-                  href={`/tickets/${r.ticket_code}`}
-                  className="rounded-md bg-zinc-900 px-3 py-1.5 font-medium text-white hover:bg-zinc-700"
-                >
-                  View ticket
-                </Link>
-                {r.events && (
-                  <a
-                    href={`/api/events/${r.events.id}/calendar`}
-                    className="rounded-md border border-zinc-300 px-3 py-1.5 font-medium text-zinc-900 hover:bg-zinc-50"
-                  >
-                    Add to calendar
-                  </a>
+        <ul className="space-y-3">
+          {items.map((r) => {
+            const active = r.status === "approved" || r.status === "checked_in";
+            return (
+              <li key={r.id} className="space-y-4 rounded-xl border bg-card p-5 text-card-foreground">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0 space-y-1">
+                    <p className="font-heading font-semibold">{r.events?.title ?? "Event"}</p>
+                    {r.events && (
+                      <p className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                        <span className="inline-flex items-center gap-1"><CalendarDays className="size-3.5" aria-hidden /> {formatShortDate(r.events.start_at, r.events.timezone)}</span>
+                        {r.events.location && <span className="inline-flex items-center gap-1"><MapPin className="size-3.5" aria-hidden /> {r.events.location}</span>}
+                      </p>
+                    )}
+                  </div>
+                  <StatusBadge status={r.status} label={STATUS_LABELS[r.status]} />
+                </div>
+                {active && r.ticket_code && (
+                  <div className="flex flex-wrap gap-2">
+                    <Link href={`/tickets/${r.ticket_code}`} className={buttonVariants({ size: "lg" })}><Ticket aria-hidden /> View ticket</Link>
+                    {r.events && (
+                      <a href={`/api/events/${r.events.id}/calendar`} className={buttonVariants({ variant: "outline", size: "lg" })}><CalendarPlus aria-hidden /> Add to calendar</a>
+                    )}
+                  </div>
                 )}
-              </div>
-            )}
-            {(r.status === "approved" || r.status === "checked_in") && (
-              <LeadConsentToggle registrationId={r.id} initial={r.sponsor_lead_consent} />
-            )}
-          </li>
-        ))}
-      </ul>
-    </main>
+                {active && <LeadConsentToggle registrationId={r.id} initial={r.sponsor_lead_consent} />}
+              </li>
+            );
+          })}
+        </ul>
+      </main>
+    </div>
   );
 }

@@ -28,6 +28,9 @@ export type EventRow = {
   requires_approval: boolean;
   require_b2b_data: boolean;
   status: EventStatus;
+  primary_color: string | null;
+  accent_color: string | null;
+  currency: string;
   created_at: string;
   updated_at: string;
 };

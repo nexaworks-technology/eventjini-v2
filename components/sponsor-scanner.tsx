@@ -1,6 +1,9 @@
 "use client";
 
+import { btnPrimary } from "@/components/eventjini/classes";
+import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { OFFLINE_MESSAGE, useOnline } from "@/lib/use-online";
 import { captureLead, saveLeadNotes, type CaptureOutcome } from "@/app/dashboard/sponsor/portal/[id]/actions";
 
 const READER_ID = "ej-sponsor-reader";
@@ -20,11 +23,12 @@ export function SponsorScanner({ sponsorId }: { sponsorId: string }) {
   const [busy, setBusy] = useState(false);
   const [notes, setNotes] = useState("");
   const [noteMsg, setNoteMsg] = useState<string | null>(null);
+  const online = useOnline();
   const scannerRef = useRef<import("html5-qrcode").Html5Qrcode | null>(null);
   const handling = useRef(false);
 
   async function submit(raw: string) {
-    if (handling.current) return;
+    if (handling.current || !navigator.onLine) return;
     handling.current = true;
     setBusy(true);
     setNoteMsg(null);
@@ -49,7 +53,7 @@ export function SponsorScanner({ sponsorId }: { sponsorId: string }) {
       const s = new Html5Qrcode(READER_ID);
       scannerRef.current = s;
       await s.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 240, height: 240 } }, (text) => {
-        if (handling.current) return;
+        if (handling.current || !navigator.onLine) return;
         void submit(text);
         try { s.pause(true); } catch {}
       }, () => {});
@@ -82,18 +86,23 @@ export function SponsorScanner({ sponsorId }: { sponsorId: string }) {
 
   return (
     <div className="space-y-6">
-      <section className="space-y-4 rounded-xl bg-white p-6 shadow-sm">
+      {!online && (
+        <p role="alert" className="rounded-md bg-warning/10 px-4 py-3 text-sm font-medium text-foreground">
+          {OFFLINE_MESSAGE}
+        </p>
+      )}
+      <section className="space-y-4 rounded-xl bg-card p-6 shadow-sm">
         <div id={READER_ID} className="w-full overflow-hidden rounded-md" />
-        {camera === "idle" && <button type="button" onClick={start} className="w-full rounded-md bg-zinc-900 px-4 py-4 text-lg font-medium text-white hover:bg-zinc-700">Start camera</button>}
-        {camera === "starting" && <p className="text-center text-zinc-600">Starting camera...</p>}
+        {camera === "idle" && <button type="button" onClick={start} className={cn(btnPrimary, "h-auto w-full py-4 text-lg")}>Start camera</button>}
+        {camera === "starting" && <p className="text-center text-muted-foreground">Starting camera...</p>}
         {camera === "running" && (
           <div className="space-y-1 text-center">
-            <p className="text-sm text-zinc-600">Scan the attendee&apos;s EventJini QR code</p>
-            <button type="button" onClick={stop} className="text-sm text-zinc-600 underline">Stop camera</button>
+            <p className="text-sm text-muted-foreground">Scan the attendee&apos;s EventJini QR code</p>
+            <button type="button" onClick={stop} className="text-sm text-muted-foreground underline">Stop camera</button>
           </div>
         )}
         {(camera === "denied" || camera === "unavailable") && (
-          <div role="alert" className="space-y-2 rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div role="alert" className="space-y-2 rounded-md bg-warning/10 px-4 py-3 text-sm text-foreground">
             <p className="font-medium">{camera === "denied" ? "Camera access was denied." : "The camera could not be started."}</p>
             <p>You can enter the ticket code manually.</p>
             <button type="button" onClick={start} className="underline">Try camera again</button>
@@ -101,7 +110,7 @@ export function SponsorScanner({ sponsorId }: { sponsorId: string }) {
         )}
 
         {outcome && (
-          <div role="status" className={`space-y-2 rounded-md px-4 py-5 ${lead ? (outcome.result === "captured" ? "bg-green-50 text-green-900" : "bg-amber-50 text-amber-900") : "bg-red-50 text-red-800"}`}>
+          <div role="status" className={`space-y-2 rounded-md px-4 py-5 ${lead ? (outcome.result === "captured" ? "bg-success/10 text-success" : "bg-warning/10 text-foreground") : "bg-destructive/10 text-destructive"}`}>
             {lead ? (
               <>
                 <p className="text-xl font-semibold">{outcome.result === "captured" ? "Lead captured ✓" : "Lead already captured"}</p>
@@ -111,29 +120,29 @@ export function SponsorScanner({ sponsorId }: { sponsorId: string }) {
                 <p className="text-sm">{lead.email}</p>
                 <label className="block space-y-1 pt-2 text-sm font-medium">
                   Notes
-                  <textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-zinc-900" />
+                  <textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full rounded-md border border-border bg-card px-3 py-2 text-foreground" />
                 </label>
                 <div className="flex items-center gap-3">
-                  <button type="button" onClick={async () => { const r = await saveLeadNotes(sponsorId, lead.id, notes); setNoteMsg(r.ok ? "Notes saved." : r.error); }} className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white">Save notes</button>
-                  {camera === "running" && <button type="button" onClick={() => { setOutcome(null); try { scannerRef.current?.resume(); } catch {} }} className="rounded-md border border-zinc-400 px-4 py-2 text-sm font-medium">Scan next</button>}
+                  <button type="button" onClick={async () => { const r = await saveLeadNotes(sponsorId, lead.id, notes); setNoteMsg(r.ok ? "Notes saved." : r.error); }} className={btnPrimary}>Save notes</button>
+                  {camera === "running" && <button type="button" onClick={() => { setOutcome(null); try { scannerRef.current?.resume(); } catch {} }} className="rounded-md border border-input px-4 py-2 text-sm font-medium">Scan next</button>}
                 </div>
                 {noteMsg && <p className="text-sm">{noteMsg}</p>}
               </>
             ) : (
               <>
                 <p className="text-lg font-semibold">{MESSAGES[outcome.result] ?? MESSAGES.error}</p>
-                {camera === "running" && <button type="button" onClick={() => { setOutcome(null); try { scannerRef.current?.resume(); } catch {} }} className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white">Scan next</button>}
+                {camera === "running" && <button type="button" onClick={() => { setOutcome(null); try { scannerRef.current?.resume(); } catch {} }} className={btnPrimary}>Scan next</button>}
               </>
             )}
           </div>
         )}
       </section>
 
-      <section className="space-y-3 rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="font-semibold text-zinc-900">Enter ticket code manually</h2>
+      <section className="space-y-3 rounded-xl bg-card p-6 shadow-sm">
+        <h2 className="font-semibold text-foreground">Enter ticket code manually</h2>
         <form onSubmit={onManual} className="space-y-3">
-          <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="EVJ-7F8D5D2B93B84A71" autoComplete="off" autoCapitalize="characters" className="w-full rounded-md border border-zinc-300 px-3 py-3 font-mono text-zinc-900 focus:border-zinc-900 focus:outline-none" />
-          <button type="submit" disabled={busy || !code.trim()} className="w-full rounded-md bg-zinc-900 px-4 py-3 font-medium text-white hover:bg-zinc-700 disabled:opacity-60">{busy ? "Checking..." : "Find attendee"}</button>
+          <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="EVJ-7F8D5D2B93B84A71" aria-label="Ticket code" autoComplete="off" autoCapitalize="characters" className="w-full rounded-md border border-border px-3 py-3 font-mono text-foreground focus:border-ring focus:outline-none" />
+          <button type="submit" disabled={busy || !online || !code.trim()} className={cn(btnPrimary, "h-auto w-full py-3")}>{busy ? "Checking..." : "Find attendee"}</button>
         </form>
       </section>
     </div>

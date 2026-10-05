@@ -1,5 +1,5 @@
+import { PageHeader } from "@/components/eventjini/page-header";
 import { AutomationManager, type AutomationItem } from "@/components/automation-manager";
-import { EventNav } from "@/components/event-nav";
 import { ADMIN_ROLES, requireEventAccess } from "@/lib/event-access";
 
 type RunRow = {
@@ -14,7 +14,7 @@ type RunRow = {
 
 export default async function AutomationsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, event, role } = await requireEventAccess(id, ADMIN_ROLES);
+  const { supabase } = await requireEventAccess(id, ADMIN_ROLES);
 
   const [{ data: automations }, { data: runRows }] = await Promise.all([
     supabase.from("event_automations").select("id,name,trigger_type,subject,body_text,enabled").eq("event_id", id).order("created_at"),
@@ -43,10 +43,9 @@ export default async function AutomationsPage({ params }: { params: Promise<{ id
   }));
 
   return (
-    <main className="mx-auto min-h-screen max-w-3xl space-y-6 px-4 py-10">
-      <EventNav eventId={id} eventTitle={event.title} role={role} active="automations" />
-      <h2 className="text-xl font-semibold text-zinc-900">Automations</h2>
+    <div className="max-w-3xl space-y-6">
+      <PageHeader level={2} title={"Automations"} />
       <AutomationManager eventId={id} items={items} />
-    </main>
+    </div>
   );
 }

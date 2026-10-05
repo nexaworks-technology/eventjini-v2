@@ -1,6 +1,8 @@
+import { filterPill } from "@/components/eventjini/classes";
+import { PageHeader } from "@/components/eventjini/page-header";
 import Link from "next/link";
 import { headers } from "next/headers";
-import { EventNav } from "@/components/event-nav";
+import { StatusBadge } from "@/components/eventjini/status-badge";
 import { SponsorDecision } from "@/components/sponsor-decision";
 import { ADMIN_ROLES, requireEventAccess } from "@/lib/event-access";
 import type { SponsorApplication } from "@/lib/sponsors";
@@ -21,7 +23,7 @@ export default async function ApplicationsPage({
 }) {
   const { id } = await params;
   const { status } = await searchParams;
-  const { supabase, event, role } = await requireEventAccess(id, ADMIN_ROLES);
+  const { supabase } = await requireEventAccess(id, ADMIN_ROLES);
 
   const [{ data }, { data: tierRows }] = await Promise.all([
     supabase.from("sponsor_registrations").select("*").eq("event_id", id).order("created_at", { ascending: false }),
@@ -40,47 +42,46 @@ export default async function ApplicationsPage({
   const origin = `${h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https")}://${host}`;
 
   return (
-    <main className="mx-auto min-h-screen max-w-3xl space-y-6 px-4 py-10">
-      <EventNav eventId={id} eventTitle={event.title} role={role} active="sponsors" />
+    <div className="max-w-3xl space-y-6">
       <div>
-        <Link href={`/dashboard/events/${id}/sponsors`} className="text-sm text-zinc-500 hover:underline">← Sponsors</Link>
-        <h2 className="text-xl font-semibold text-zinc-900">Sponsor applications</h2>
+        <Link href={`/dashboard/events/${id}/sponsors`} className="text-sm text-muted-foreground hover:underline">← Sponsors</Link>
+        <PageHeader level={2} title={"Sponsor applications"} />
       </div>
 
       <nav className="flex flex-wrap gap-2 text-sm">
         {FILTERS.map((f) => (
           <Link key={f.key} href={f.key === "all" ? `/dashboard/events/${id}/sponsors/applications` : `/dashboard/events/${id}/sponsors/applications?status=${f.key}`}
-            className={`rounded-full px-3 py-1 ${active === f.key ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"}`}>
+            className={filterPill(active === f.key)}>
             {f.label} {counts[f.key] ?? 0}
           </Link>
         ))}
       </nav>
 
-      {visible.length === 0 && <div className="rounded-xl bg-white p-8 text-center text-zinc-600 shadow-sm">No applications here yet.</div>}
+      {visible.length === 0 && <div className="rounded-xl bg-card p-8 text-center text-muted-foreground shadow-sm">No applications here yet.</div>}
 
       <ul className="space-y-3">
         {visible.map((a) => (
-          <li key={a.id} className="space-y-2 rounded-xl bg-white p-5 shadow-sm">
+          <li key={a.id} className="space-y-2 rounded-xl bg-card p-5 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="font-semibold text-zinc-900">{a.company_name}</p>
-                <p className="text-sm text-zinc-600">{tierName.get(a.tier_id) ?? "Tier"}</p>
-                <p className="text-sm text-zinc-700">{a.contact_name} · {a.contact_email}</p>
-                {a.message && <p className="mt-1 whitespace-pre-line text-sm italic text-zinc-600">&ldquo;{a.message}&rdquo;</p>}
-                <p className="mt-1 text-xs font-medium capitalize text-zinc-500">{a.status}</p>
+                <p className="font-semibold text-foreground">{a.company_name}</p>
+                <p className="text-sm text-muted-foreground">{tierName.get(a.tier_id) ?? "Tier"}</p>
+                <p className="text-sm text-foreground">{a.contact_name} · {a.contact_email}</p>
+                {a.message && <p className="mt-1 whitespace-pre-line text-sm italic text-muted-foreground">&ldquo;{a.message}&rdquo;</p>}
+                <div className="mt-1"><StatusBadge status={a.status} /></div>
               </div>
               {a.status === "pending" && <SponsorDecision eventId={id} applicationId={a.id} />}
             </div>
             {a.status === "approved" && (
-              <div className="rounded-md bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+              <div className="rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
                 Send this portal link to {a.contact_email} (they must sign in with that email):
-                <input readOnly value={`${origin}/dashboard/sponsor/portal/${a.id}`} className="mt-1 w-full rounded border border-zinc-200 bg-white px-2 py-1 font-mono text-zinc-900" />
+                <input readOnly value={`${origin}/dashboard/sponsor/portal/${a.id}`} className="mt-1 w-full rounded border border-border bg-card px-2 py-1 font-mono text-foreground" />
                 <span className="mt-1 block">{a.sponsor_user_id ? "Portal claimed." : "Not claimed yet."}</span>
               </div>
             )}
           </li>
         ))}
       </ul>
-    </main>
+    </div>
   );
 }

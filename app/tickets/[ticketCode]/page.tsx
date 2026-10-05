@@ -1,11 +1,18 @@
+import { CalendarDays, CalendarPlus, Clock, MapPin } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
-import { TICKET_CODE_RE, type RegistrationRow } from "@/lib/registration";
-import type { EventRow } from "@/lib/events";
+import { PublicHeader } from "@/components/eventjini/public-header";
+import { StatusBadge } from "@/components/eventjini/status-badge";
 import { LeadConsentToggle } from "@/components/lead-consent-toggle";
+import { buttonVariants } from "@/components/ui/button";
+import type { EventRow } from "@/lib/events";
+import { STATUS_LABELS, TICKET_CODE_RE, type RegistrationRow } from "@/lib/registration";
 import { formatEventWhen } from "@/lib/time";
+import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
+
+export const metadata = { title: "Your ticket" };
 
 export default async function TicketPage({ params }: { params: Promise<{ ticketCode: string }> }) {
   const { ticketCode } = await params;
@@ -30,49 +37,52 @@ export default async function TicketPage({ params }: { params: Promise<{ ticketC
   const event = reg.events;
   if (!event) notFound();
 
-  const qrSvg = await QRCode.toString(ticketCode, { type: "svg", margin: 1, width: 224 });
+  const qrSvg = await QRCode.toString(ticketCode, { type: "svg", margin: 2, width: 256, color: { dark: "#000000", light: "#ffffff" } });
   const when = formatEventWhen(event.start_at, event.end_at, event.timezone);
 
   return (
-    <main className="flex min-h-screen items-start justify-center bg-zinc-50 px-4 py-10">
-      <div className="w-full max-w-sm space-y-5 rounded-xl bg-white p-8 text-center shadow-sm">
-        <p className="text-sm font-semibold tracking-wide text-zinc-500">EventJini</p>
-        <h1 className="text-xl font-semibold text-zinc-900">{event.title}</h1>
+    <div className="min-h-dvh bg-muted/40">
+      <PublicHeader />
+      <main className="mx-auto max-w-sm px-4 py-6">
+        <article className="overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm" aria-label={`Ticket for ${event.title}`}>
+          <div className="space-y-3 p-6">
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="font-heading text-xl leading-snug font-semibold tracking-tight">{event.title}</h1>
+              <StatusBadge status={reg.status} label={STATUS_LABELS[reg.status]} className="shrink-0" />
+            </div>
+            <ul className="space-y-1.5 text-sm text-muted-foreground">
+              <li className="flex items-center gap-2"><CalendarDays className="size-4" aria-hidden /> {when.date}</li>
+              <li className="flex items-center gap-2"><Clock className="size-4" aria-hidden /> {when.time} ({event.timezone})</li>
+              {event.location && <li className="flex items-center gap-2"><MapPin className="size-4" aria-hidden /> {event.location}</li>}
+            </ul>
+          </div>
 
-        <div className="space-y-0.5 text-sm text-zinc-700">
-          <p className="font-medium text-zinc-900">
-            {reg.first_name} {reg.last_name}
-          </p>
-          <p>{when.date}</p>
-          <p>
-            {when.time} ({event.timezone})
-          </p>
-          {event.location && <p>{event.location}</p>}
-        </div>
+          <div className="relative border-t border-dashed px-6 py-6">
+            <span aria-hidden className="absolute -top-3 -left-3 size-6 rounded-full bg-muted/40 ring-1 ring-border" />
+            <span aria-hidden className="absolute -top-3 -right-3 size-6 rounded-full bg-muted/40 ring-1 ring-border" />
+            <p className="text-center text-xs font-medium tracking-wide text-muted-foreground uppercase">Attendee</p>
+            <p className="text-center text-lg font-semibold">{reg.first_name} {reg.last_name}</p>
+            {/* Always black on white, regardless of theme, for reliable scanning. */}
+            <div
+              role="img"
+              aria-label={`QR code for ticket ${ticketCode}`}
+              className="mx-auto mt-4 w-64 max-w-full rounded-xl bg-white p-2 ring-1 ring-black/10 [&_svg]:h-auto [&_svg]:w-full"
+              dangerouslySetInnerHTML={{ __html: qrSvg }}
+            />
+            <p className="mt-3 text-center font-mono text-sm tracking-wider">{ticketCode}</p>
+          </div>
 
-        <div
-          role="img"
-          aria-label="Ticket QR code"
-          className="mx-auto h-56 w-56"
-          dangerouslySetInnerHTML={{ __html: qrSvg }}
-        />
-        <p className="font-mono text-sm tracking-wider text-zinc-900">{ticketCode}</p>
-        {reg.status === "checked_in" && <p className="text-sm font-medium text-green-700">Checked in</p>}
-
-        <LeadConsentToggle registrationId={reg.id} initial={reg.sponsor_lead_consent} />
-
-        <div className="flex flex-col gap-2">
-          <a
-            href={`/api/events/${event.id}/calendar`}
-            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700"
-          >
-            Add to calendar
-          </a>
-          <Link href="/my-tickets" className="text-sm text-zinc-600 underline">
-            My Tickets
-          </Link>
-        </div>
-      </div>
-    </main>
+          <div className="space-y-3 border-t bg-muted/30 p-6">
+            <a href={`/api/events/${event.id}/calendar`} className={cn(buttonVariants({ size: "lg" }), "h-11 w-full")}>
+              <CalendarPlus aria-hidden /> Add to calendar
+            </a>
+            <LeadConsentToggle registrationId={reg.id} initial={reg.sponsor_lead_consent} />
+          </div>
+        </article>
+        <p className="mt-4 text-center">
+          <Link href="/my-tickets" className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">My Tickets</Link>
+        </p>
+      </main>
+    </div>
   );
 }

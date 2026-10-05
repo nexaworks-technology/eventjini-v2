@@ -1,7 +1,10 @@
+import { AuthLayout } from "@/components/eventjini/auth-layout";
 import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/auth-form";
 import { safeNext } from "@/lib/safe-next";
 import { createClient } from "@/utils/supabase/server";
+
+export const metadata = { title: "Create account" };
 
 export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const supabase = await createClient();
@@ -12,14 +15,8 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
   if (user && !user.is_anonymous) redirect(next ?? "/dashboard");
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4">
-      <div className="w-full max-w-sm space-y-6 rounded-xl bg-white p-8 shadow-sm">
-        <div className="space-y-1 text-center">
-          <p className="text-sm font-semibold tracking-wide text-zinc-500">EventJini</p>
-          <h1 className="text-2xl font-semibold text-zinc-900">Create your account</h1>
-        </div>
-        <AuthForm mode="register" next={next} />
-      </div>
-    </main>
+    <AuthLayout title="Create your account" description="Start running your events from one place.">
+      <AuthForm mode="register" next={next} />
+    </AuthLayout>
   );
 }

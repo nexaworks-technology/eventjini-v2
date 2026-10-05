@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { PageHeader } from "@/components/eventjini/page-header";
 import { EventWizard } from "@/components/event-wizard";
 import { ADMIN_ROLES, requireEventAccess } from "@/lib/event-access";
 import type { EventFormValues } from "@/lib/events";
@@ -27,13 +27,8 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
   };
 
   return (
-    <main className="min-h-screen space-y-6 px-4 py-10">
-      <div className="mx-auto max-w-2xl">
-        <Link href={`/dashboard/events/${event.id}`} className="text-sm text-zinc-500 hover:underline">
-          ← {event.title}
-        </Link>
-        <h1 className="text-2xl font-semibold text-zinc-900">Edit event</h1>
-      </div>
+    <div className="max-w-2xl space-y-6">
+      <PageHeader level={2} title="Edit event" description="Changes use the same validation as event creation." />
       <EventWizard
         mode="edit"
         initialValues={initialValues}
@@ -41,6 +36,6 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
         eventId={event.id}
         isPublished={event.status === "published"}
       />
-    </main>
+    </div>
   );
 }

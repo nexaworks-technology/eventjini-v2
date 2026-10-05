@@ -4,18 +4,8 @@ import type { EventRow } from "@/lib/events";
 import { UUID_RE } from "@/lib/registration";
 import { createClient } from "@/utils/supabase/server";
 
-export type EventRole = "owner" | "admin" | "scanner" | "viewer";
-
-export const ROLE_LABELS: Record<EventRole, string> = {
-  owner: "Owner",
-  admin: "Admin",
-  scanner: "Scanner",
-  viewer: "Viewer",
-};
-
-export const ADMIN_ROLES: EventRole[] = ["owner", "admin"];
-export const CHECKIN_ROLES: EventRole[] = ["owner", "admin", "scanner"];
-export const TASK_READ_ROLES: EventRole[] = ["owner", "admin", "viewer"];
+export { ADMIN_ROLES, CHECKIN_ROLES, ROLE_LABELS, TASK_READ_ROLES, type EventRole } from "@/lib/roles";
+import type { EventRole } from "@/lib/roles";
 
 export async function getEventRole(supabase: SupabaseClient, eventId: string): Promise<EventRole | null> {
   const { data } = await supabase.rpc("event_role", { p_event_id: eventId });

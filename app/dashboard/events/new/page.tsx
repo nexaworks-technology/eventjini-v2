@@ -1,4 +1,6 @@
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { PageHeader } from "@/components/eventjini/page-header";
 import { redirect } from "next/navigation";
 import { EventWizard } from "@/components/event-wizard";
 import { emptyFormValues } from "@/lib/events";
@@ -13,14 +15,14 @@ export default async function NewEventPage() {
   if (!user || user.is_anonymous) redirect("/login");
 
   return (
-    <main className="min-h-screen space-y-6 px-4 py-10">
-      <div className="mx-auto max-w-2xl">
-        <Link href="/dashboard/events" className="text-sm text-zinc-500 hover:underline">
-          ← Your events
+    <div className="mx-auto max-w-2xl space-y-6">
+      <div className="space-y-3">
+        <Link href="/dashboard/events" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="size-3.5" aria-hidden /> Events
         </Link>
-        <h1 className="text-2xl font-semibold text-zinc-900">Create event</h1>
+        <PageHeader title="Create event" description="Four short steps: basics, date and time, settings, and a final review." />
       </div>
       <EventWizard mode="create" initialValues={emptyFormValues()} timezones={getTimezones()} />
-    </main>
+    </div>
   );
 }

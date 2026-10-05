@@ -1,5 +1,6 @@
 "use client";
 
+import { btnPrimarySm, btnSecondarySm } from "@/components/eventjini/classes";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
@@ -28,7 +29,7 @@ export function RegistrationDecision({ registrationId }: { registrationId: strin
           type="button"
           disabled={pending}
           onClick={() => run(approveRegistration)}
-          className="rounded-md bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60"
+          className={btnPrimarySm}
         >
           Approve
         </button>
@@ -36,12 +37,12 @@ export function RegistrationDecision({ registrationId }: { registrationId: strin
           type="button"
           disabled={pending}
           onClick={() => run(rejectRegistration)}
-          className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
+          className={btnSecondarySm}
         >
           Reject
         </button>
       </div>
-      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }

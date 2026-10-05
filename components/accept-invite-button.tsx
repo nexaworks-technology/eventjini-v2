@@ -1,5 +1,7 @@
 "use client";
 
+import { btnPrimary } from "@/components/eventjini/classes";
+import { cn } from "@/lib/utils";
 import { useState, useTransition } from "react";
 import { acceptInvite } from "@/app/invite/[token]/actions";
 
@@ -18,11 +20,11 @@ export function AcceptInviteButton({ token }: { token: string }) {
             if (r && !r.ok) setError(r.error);
           })
         }
-        className="w-full rounded-md bg-zinc-900 px-4 py-2 font-medium text-white hover:bg-zinc-700 disabled:opacity-60"
+        className={cn(btnPrimary, "w-full")}
       >
         {pending ? "Accepting..." : "Accept invitation"}
       </button>
-      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }

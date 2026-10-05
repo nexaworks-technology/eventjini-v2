@@ -1,10 +1,18 @@
+import { ArrowLeft, CalendarDays, MapPin } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PoweredBy } from "@/components/eventjini/public-event-chrome";
 import { RegistrationForm } from "@/components/registration-form";
+import { eventBrandStyle } from "@/lib/branding";
 import { getPublishedEvent, getViewerState } from "@/lib/public-event";
 import type { RegistrationField } from "@/lib/registration";
 import { formatEventWhen } from "@/lib/time";
 import { createClient } from "@/utils/supabase/server";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const event = await getPublishedEvent((await params).slug);
+  return { title: event ? `Register · ${event.title}` : "Event not found" };
+}
 
 export default async function RegisterPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -25,41 +33,35 @@ export default async function RegisterPage({ params }: { params: Promise<{ slug:
   let body: React.ReactNode;
   if (registration) {
     body = (
-      <div className="space-y-3 text-center">
-        <p className="text-zinc-800">You&apos;re already registered for this event.</p>
-        <Link href="/my-tickets" className="inline-block rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700">
+      <div className="space-y-3 rounded-xl border bg-card p-6 text-center">
+        <p>You&apos;re already registered for this event.</p>
+        <Link href="/my-tickets" className="event-cta inline-flex h-11 items-center rounded-lg px-5 text-sm font-semibold">
           View My Tickets
         </Link>
       </div>
     );
   } else if (soldOut) {
-    body = <p className="text-center font-medium text-zinc-800">Sorry, this event is sold out.</p>;
+    body = <p className="rounded-xl border bg-card p-6 text-center font-medium">Sorry, this event is sold out.</p>;
   } else {
-    body = (
-      <RegistrationForm
-        eventId={event.id}
-        eventTitle={event.title}
-        requireB2b={event.require_b2b_data}
-        fields={fields}
-      />
-    );
+    body = <RegistrationForm eventId={event.id} eventTitle={event.title} requireB2b={event.require_b2b_data} fields={fields} />;
   }
 
   return (
-    <main className="flex min-h-screen items-start justify-center bg-zinc-50 px-4 py-10">
-      <div className="w-full max-w-lg space-y-6 rounded-xl bg-white p-8 shadow-sm">
-        <div className="space-y-1">
-          <Link href={`/e/${event.slug}`} className="text-sm text-zinc-500 hover:underline">
-            ← Event page
+    <div className="min-h-dvh bg-background" style={eventBrandStyle(event.primary_color, event.accent_color)}>
+      <header className="event-hero">
+        <div className="mx-auto max-w-2xl space-y-3 px-5 py-8 sm:px-6">
+          <Link href={`/e/${event.slug}`} className="inline-flex items-center gap-1 text-sm opacity-85 hover:opacity-100">
+            <ArrowLeft className="size-3.5" aria-hidden /> Event page
           </Link>
-          <h1 className="text-2xl font-semibold text-zinc-900">Register for {event.title}</h1>
-          <p className="text-sm text-zinc-600">
-            {when.date}
-            {event.location ? ` • ${event.location}` : ""}
+          <h1 className="font-heading text-2xl font-semibold tracking-tight text-balance sm:text-3xl">Register for {event.title}</h1>
+          <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm opacity-90">
+            <span className="inline-flex items-center gap-1.5"><CalendarDays className="size-4" aria-hidden /> {when.date}</span>
+            {event.location && <span className="inline-flex items-center gap-1.5"><MapPin className="size-4" aria-hidden /> {event.location}</span>}
           </p>
         </div>
-        {body}
-      </div>
-    </main>
+      </header>
+      <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6">{body}</main>
+      <PoweredBy />
+    </div>
   );
 }

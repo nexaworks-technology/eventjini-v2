@@ -1,5 +1,10 @@
 "use client";
 
+import { buttonVariants } from "@/components/ui/button";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useConfirm } from "@/components/eventjini/confirm-dialog";
+import { btnPrimary } from "@/components/eventjini/classes";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import {
@@ -36,6 +41,7 @@ export function TeamManager({
   members: TeamMember[];
   invites: PendingInvite[];
 }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<MemberRole>("admin");
@@ -68,65 +74,78 @@ export function TeamManager({
   return (
     <div className="space-y-6">
       {error && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
       )}
 
-      <section className="space-y-3 rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="font-semibold text-zinc-900">Team</h2>
-        <ul className="divide-y divide-zinc-100">
-          {members.map((m) => (
-            <li key={m.user_id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-              <div>
-                <p className="text-sm font-medium text-zinc-900">{m.full_name || m.email}</p>
-                {m.full_name && <p className="text-xs text-zinc-500">{m.email}</p>}
-              </div>
-              {m.is_owner ? (
-                <span className="text-sm text-zinc-600">Owner</span>
-              ) : (
-                <div className="flex items-center gap-3">
-                  <select
-                    value={m.role}
-                    disabled={pending}
-                    onChange={(e) => run(() => changeMemberRole(eventId, m.member_id!, e.target.value as MemberRole))}
-                    aria-label={`Role for ${m.email}`}
-                    className="rounded-md border border-zinc-300 px-2 py-1 text-sm"
-                  >
-                    {ROLE_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() => {
-                      if (window.confirm(`Remove ${m.email} from this event?`)) run(() => removeMember(eventId, m.member_id!));
-                    }}
-                    className="text-sm text-red-600 underline"
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
+      <section className="space-y-3 rounded-xl bg-card p-6 shadow-sm">
+        <h2 className="font-semibold text-foreground">Team</h2>
+        <div className="overflow-x-auto rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Member</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead><span className="sr-only">Actions</span></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {members.map((m) => (
+                <TableRow key={m.user_id}>
+                  <TableCell className="max-w-64">
+                    <p className="truncate font-medium">{m.full_name || m.email}</p>
+                    {m.full_name && <p className="truncate text-xs text-muted-foreground">{m.email}</p>}
+                  </TableCell>
+                  <TableCell>
+                    {m.is_owner ? (
+                      <span className="text-sm text-muted-foreground">Owner</span>
+                    ) : (
+                      <NativeSelect
+                        size="sm"
+                        value={m.role}
+                        disabled={pending}
+                        onChange={(e) => run(() => changeMemberRole(eventId, m.member_id!, e.target.value as MemberRole))}
+                        aria-label={`Role for ${m.email}`}
+                      >
+                        {ROLE_OPTIONS.map((o) => (
+                          <NativeSelectOption key={o.value} value={o.value}>{o.label}</NativeSelectOption>
+                        ))}
+                      </NativeSelect>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {!m.is_owner && (
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={async () => {
+                          if (await confirm({ title: `Remove ${m.email} from this event?`, description: "They lose access immediately. Their past actions stay in the record.", confirmLabel: "Remove", destructive: true })) run(() => removeMember(eventId, m.member_id!));
+                        }}
+                        className={buttonVariants({ variant: "ghost", size: "sm", className: "text-destructive" })}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </section>
 
       {invites.length > 0 && (
-        <section className="space-y-3 rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="font-semibold text-zinc-900">Pending invitations</h2>
-          <ul className="divide-y divide-zinc-100">
+        <section className="space-y-3 rounded-xl bg-card p-6 shadow-sm">
+          <h2 className="font-semibold text-foreground">Pending invitations</h2>
+          <ul className="divide-y divide-border">
             {invites.map((i) => (
               <li key={i.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
                 <span>
-                  <span className="font-medium text-zinc-900">{i.email}</span>{" "}
-                  <span className="text-zinc-600">· {cap(i.role)} · pending</span>
+                  <span className="font-medium text-foreground">{i.email}</span>{" "}
+                  <span className="text-muted-foreground">· {cap(i.role)} · pending</span>
                 </span>
-                <button type="button" disabled={pending} onClick={() => run(() => revokeInvite(eventId, i.id))} className="text-red-600 underline">
+                <button type="button" disabled={pending} onClick={() => run(() => revokeInvite(eventId, i.id))} className="text-destructive underline">
                   Revoke
                 </button>
               </li>
@@ -135,22 +154,22 @@ export function TeamManager({
         </section>
       )}
 
-      <section className="space-y-3 rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="font-semibold text-zinc-900">Invite team member</h2>
+      <section className="space-y-3 rounded-xl bg-card p-6 shadow-sm">
+        <h2 className="font-semibold text-foreground">Invite team member</h2>
         <form onSubmit={invite} className="flex flex-wrap items-end gap-3">
-          <label className="min-w-56 flex-1 space-y-1 text-sm text-zinc-700">
+          <label className="min-w-56 flex-1 space-y-1 text-sm text-foreground">
             Email
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 focus:border-zinc-900 focus:outline-none"
+              className="w-full rounded-md border border-border px-3 py-2 focus:border-ring focus:outline-none"
             />
           </label>
-          <label className="space-y-1 text-sm text-zinc-700">
+          <label className="space-y-1 text-sm text-foreground">
             Role
-            <select value={role} onChange={(e) => setRole(e.target.value as MemberRole)} className="block rounded-md border border-zinc-300 px-3 py-2">
+            <select value={role} onChange={(e) => setRole(e.target.value as MemberRole)} className="block rounded-md border border-border px-3 py-2">
               {ROLE_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
@@ -158,20 +177,20 @@ export function TeamManager({
               ))}
             </select>
           </label>
-          <button type="submit" disabled={pending} className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60">
+          <button type="submit" disabled={pending} className={btnPrimary}>
             {pending ? "Creating..." : "Create invite"}
           </button>
         </form>
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-muted-foreground">
           EventJini does not send email yet. Copy the invitation link and send it to the invitee. Links expire after 7 days.
         </p>
 
         {link && (
-          <div className="space-y-1 rounded-md bg-green-50 px-3 py-3 text-sm text-green-900">
+          <div className="space-y-1 rounded-md bg-success/10 px-3 py-3 text-sm text-success">
             <p>
               Invitation for <span className="font-medium">{link.email}</span> created. This link is shown only once:
             </p>
-            <input readOnly value={link.url} onFocus={(e) => e.currentTarget.select()} className="w-full rounded border border-green-200 bg-white px-2 py-1 font-mono text-xs text-zinc-900" />
+            <input readOnly value={link.url} onFocus={(e) => e.currentTarget.select()} className="w-full rounded border border-success/30 bg-card px-2 py-1 font-mono text-xs text-foreground" />
           </div>
         )}
       </section>

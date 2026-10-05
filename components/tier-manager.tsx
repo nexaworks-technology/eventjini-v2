@@ -1,14 +1,16 @@
 "use client";
 
+import { useConfirm } from "@/components/eventjini/confirm-dialog";
+import { btnPrimary, btnSecondarySm, inputCls } from "@/components/eventjini/classes";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteTier, reorderTiers, saveTier, type TierInput } from "@/app/dashboard/events/[id]/sponsors/tiers/actions";
 import type { Tier } from "@/lib/sponsors";
 
-const inputCls = "w-full rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none";
 const EMPTY: TierInput = { name: "", priceDisplay: "", benefits: [""] };
 
 export function TierManager({ eventId, tiers }: { eventId: string; tiers: Tier[] }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const [editing, setEditing] = useState<string | "new" | null>(null);
   const [form, setForm] = useState<TierInput>(EMPTY);
@@ -36,15 +38,15 @@ export function TierManager({ eventId, tiers }: { eventId: string; tiers: Tier[]
   const setBenefit = (i: number, v: string) => setForm((f) => ({ ...f, benefits: f.benefits.map((b, k) => (k === i ? v : b)) }));
 
   const formUi = (
-    <div className="space-y-3 rounded-md border border-zinc-300 bg-zinc-50 p-4">
-      <input className={inputCls} placeholder="Tier name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-      <input className={inputCls} placeholder="Price display, e.g. ₹5,00,000 or Contact us" value={form.priceDisplay} onChange={(e) => setForm({ ...form, priceDisplay: e.target.value })} />
+    <div className="space-y-3 rounded-md border border-border bg-muted/40 p-4">
+      <input className={inputCls} aria-label="Tier name" placeholder="Tier name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+      <input className={inputCls} aria-label="Price display" placeholder="Price display, e.g. ₹5,00,000 or Contact us" value={form.priceDisplay} onChange={(e) => setForm({ ...form, priceDisplay: e.target.value })} />
       <div className="space-y-2">
-        <p className="text-xs font-medium text-zinc-600">Benefits</p>
+        <p className="text-xs font-medium text-muted-foreground">Benefits</p>
         {form.benefits.map((b, i) => (
           <div key={i} className="flex gap-2">
-            <input className={inputCls} value={b} onChange={(e) => setBenefit(i, e.target.value)} placeholder="e.g. Main-stage branding" />
-            <button type="button" aria-label="Remove benefit" onClick={() => setForm((f) => ({ ...f, benefits: f.benefits.filter((_, k) => k !== i) }))} className="rounded-md border border-zinc-300 px-2 text-sm">
+            <input className={inputCls} value={b} onChange={(e) => setBenefit(i, e.target.value)} aria-label="Benefit" placeholder="e.g. Main-stage branding" />
+            <button type="button" aria-label="Remove benefit" onClick={() => setForm((f) => ({ ...f, benefits: f.benefits.filter((_, k) => k !== i) }))} className="rounded-md border border-border px-2 text-sm">
               ×
             </button>
           </div>
@@ -54,10 +56,10 @@ export function TierManager({ eventId, tiers }: { eventId: string; tiers: Tier[]
         </button>
       </div>
       <div className="flex gap-2">
-        <button type="button" disabled={pending} onClick={() => run(() => saveTier(eventId, editing === "new" ? null : editing, form), () => setEditing(null))} className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60">
+        <button type="button" disabled={pending} onClick={() => run(() => saveTier(eventId, editing === "new" ? null : editing, form), () => setEditing(null))} className={btnPrimary}>
           {pending ? "Saving..." : "Save tier"}
         </button>
-        <button type="button" onClick={() => { setEditing(null); setError(null); }} className="rounded-md border border-zinc-300 px-4 py-2 text-sm hover:bg-white">
+        <button type="button" onClick={() => { setEditing(null); setError(null); }} className="rounded-md border border-border px-4 py-2 text-sm hover:bg-card">
           Cancel
         </button>
       </div>
@@ -66,27 +68,27 @@ export function TierManager({ eventId, tiers }: { eventId: string; tiers: Tier[]
 
   return (
     <div className="space-y-4">
-      {error && <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-      {tiers.length === 0 && editing !== "new" && <div className="rounded-xl bg-white p-8 text-center text-zinc-600 shadow-sm">No tiers yet.</div>}
+      {error && <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
+      {tiers.length === 0 && editing !== "new" && <div className="rounded-xl bg-card p-8 text-center text-muted-foreground shadow-sm">No tiers yet.</div>}
 
       {tiers.map((t, i) => (
-        <div key={t.id} className="rounded-xl bg-white p-5 shadow-sm">
+        <div key={t.id} className="rounded-xl bg-card p-5 shadow-sm">
           {editing === t.id ? (
             formUi
           ) : (
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-lg font-semibold text-zinc-900">{t.name}</p>
-                {t.price_display && <p className="text-sm text-zinc-700">{t.price_display}</p>}
-                <ul className="mt-2 space-y-0.5 text-sm text-zinc-700">
+                <p className="text-lg font-semibold text-foreground">{t.name}</p>
+                {t.price_display && <p className="text-sm text-foreground">{t.price_display}</p>}
+                <ul className="mt-2 space-y-0.5 text-sm text-foreground">
                   {t.benefits.map((b, k) => <li key={k}>✓ {b}</li>)}
                 </ul>
               </div>
               <div className="flex flex-wrap gap-3 text-sm">
-                <button type="button" aria-label={`Move ${t.name} up`} disabled={pending || i === 0} onClick={() => move(i, -1)} className="rounded border border-zinc-200 px-2 disabled:opacity-30">↑</button>
-                <button type="button" aria-label={`Move ${t.name} down`} disabled={pending || i === tiers.length - 1} onClick={() => move(i, 1)} className="rounded border border-zinc-200 px-2 disabled:opacity-30">↓</button>
+                <button type="button" aria-label={`Move ${t.name} up`} disabled={pending || i === 0} onClick={() => move(i, -1)} className="rounded border border-border px-2 disabled:opacity-30">↑</button>
+                <button type="button" aria-label={`Move ${t.name} down`} disabled={pending || i === tiers.length - 1} onClick={() => move(i, 1)} className="rounded border border-border px-2 disabled:opacity-30">↓</button>
                 <button type="button" onClick={() => { setEditing(t.id); setForm({ name: t.name, priceDisplay: t.price_display ?? "", benefits: t.benefits.length ? t.benefits : [""] }); setError(null); }} className="underline">Edit</button>
-                <button type="button" disabled={pending} onClick={() => { if (window.confirm(`Delete the ${t.name} tier?`)) run(() => deleteTier(eventId, t.id)); }} className="text-red-600 underline">Delete</button>
+                <button type="button" disabled={pending} onClick={async () => { if (await confirm({ title: `Delete the ${t.name} tier?`, destructive: true })) run(() => deleteTier(eventId, t.id)); }} className="text-destructive underline">Delete</button>
               </div>
             </div>
           )}
@@ -95,7 +97,7 @@ export function TierManager({ eventId, tiers }: { eventId: string; tiers: Tier[]
 
       {editing === "new" && formUi}
       {editing !== "new" && (
-        <button type="button" onClick={() => { setEditing("new"); setForm(EMPTY); setError(null); }} className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-50">
+        <button type="button" onClick={() => { setEditing("new"); setForm(EMPTY); setError(null); }} className={btnSecondarySm}>
           + Add tier
         </button>
       )}

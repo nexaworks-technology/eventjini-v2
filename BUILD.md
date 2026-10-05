@@ -374,3 +374,74 @@ Status: Complete. Verified live: 117-check database/RLS suite passed; camera QR 
 - [x] duplicate scan protection (6 parallel scans -> exactly one lead)
 - [x] CSV export (confirmed working by the user)
 - [x] production build passes
+
+## P6 — Operations Polish & Final Phase
+
+Status: Complete except two checks that need a real phone (PWA install and standalone camera scan). Verified live: 102-check P6 database/storage suite, UI click-through, mobile overflow audit of 28 pages, accessibility scan, service-worker simulation, and the P1–P5 regression suites.
+
+### Setup required before testing
+1. Run `supabase/migrations/20261005080000_create_budget_vendors_branding.sql` in the SQL Editor. It also creates the public-read `event-assets` Storage bucket (5 MB, JPEG/PNG/WebP only) and its write policies.
+
+### Budget
+- [x] event_budget_items migration; budget list grouped by category; estimated, actual and variance (actual − estimated) per item, category and event, computed in integer cents; one event-level currency (default INR); read-only for viewers, no access for scanners; event-scoped RLS
+
+### Vendors
+- [x] event_vendors migration; create / edit / delete; search by name; category and status filters; statuses prospect / confirmed / completed / cancelled only; event-scoped RLS
+
+### Event settings
+- [x] settings page (details, date & location, registration settings, branding, cover, danger zone); slug uniqueness and date validation reuse the P1 rules; primary and accent colors validated as `#RRGGBB` (database CHECK) with live preview and automatic readable text color; branding applied to `/e/[slug]`, `/e/[slug]/register`, `/e/[slug]/sponsors` only
+- [x] Supabase Storage cover upload / replace / remove: public-read bucket, writes only by event owner/admin under `events/<event-id>/cover/<uuid>.<ext>`, enforced by a storage policy; client and bucket-level type and size limits; the previous object is deleted on replace
+- [x] danger zone: Unpublish (reversible); deleting an event is not offered
+
+### Next.js 16
+- [x] `middleware.ts` → `proxy.ts` (export renamed `proxy`), `utils/supabase/middleware.ts` → `utils/supabase/proxy.ts`, session refresh and matcher preserved; matcher also skips the service worker, manifest and icons. Authorization stays in RLS and server actions, not in the proxy.
+
+### PWA
+- [x] manifest (standalone, start_url `/dashboard`), 192 / 512 / maskable / Apple icons, service worker registered in production only, offline page, install button (browser install prompt, iOS "Add to Home Screen" hint)
+- [x] service worker caches only `/_next/static/*`, `/icons/*` and `/offline.html`. It never intercepts pages, `/api/*`, Supabase or any other origin, so guest lists, tickets, leads and logs are never cached.
+- [x] scanners show "You're offline. Reconnect to validate tickets." and refuse to validate while offline. This is installable + online scanning, not offline check-in.
+
+### UI polish
+- [x] shared UI primitives (`components/ui.tsx`: buttons, inputs, status badges, empty states), global visible keyboard focus ring, status badges with text on the main lists, explicit confirmations on destructive actions, empty states on budget and vendors
+
+### Decisions
+- Variance is never stored; it is always computed as actual − estimated (positive = over budget).
+- Public-read bucket is for event covers only. Private attendee or sponsor files must go in a separate private bucket.
+- Cover images are decorative (`alt=""`); event identity always comes from the heading.
+
+### Verification
+- [x] production build passes, no middleware/proxy deprecation warning
+- [x] budget: UI create / negative-cost rejection / variance (+₹20,000 over, −₹10,000 under, event total +₹10,000) / reload persistence; DB: RLS for owner, admin, viewer (read-only), scanner, other organizer, guest
+- [x] vendors: UI create / edit status / reload / filter; DB: RLS and validation (negative cost, blank name, payment-style statuses refused)
+- [x] settings: details save and persist, taken slug refused, end-before-start refused, colors saved, branding visible on `/e/[slug]`, `/register` and `/sponsors` for a logged-out visitor
+- [x] cover: upload through Storage under `events/<event-id>/cover/`, replace deletes the old object (verified by listing the folder), unsupported type and over-5 MB refused in the UI and at the bucket, non-owners / other events / root / traversal / HTML / SVG uploads refused by the storage policy
+- [x] proxy: no `middleware.ts`; logged-out dashboard and budget URLs redirect; public 404 intact; authorization still enforced by RLS and server actions
+- [x] PWA: manifest (standalone), icons, `sw.js` served with `max-age=0`; service-worker logic exercised in a Node harness: only static assets and the offline page are cached, `/api`, POSTs, Supabase calls, RSC data and every dashboard/ticket/lead URL are never cached
+- [x] mobile 375px: no horizontal overflow on 28 organizer and public pages; accessibility scan of public and key organizer pages: labelled inputs, named buttons, single `h1`, `lang` set
+- [x] regression suites against the P6 schema: P1/P2 55/55, P3 121/121, P4 111/113 (two known test-script mistakes, behavior verified by hand), P5 117/117
+- [ ] PWA install on a phone (needs a real device)
+- [ ] scanner camera in the installed standalone PWA (needs a real device)
+- [ ] service worker running in a real browser (the embedded preview pane refuses service-worker registration; logic was verified by simulation)
+
+### Bugs found and fixed during P6 verification
+- Accent text color was chosen by a luminance threshold, giving white on orange `#F97316` (2.8:1, fails WCAG AA). It now picks black or white by actual contrast ratio (6.7:1), and Settings warns when a primary color is too faint on white.
+- Several inputs had only a placeholder and no accessible name (guest search, add task, scanner ticket code and name search, agenda, tiers, automations, registration questions). They now have `aria-label`s. Nav pills are taller on phones.
+- Test harness note: Supabase rate-limits sign-ups to roughly 30 per 5 minutes per IP, so the guest-creating suites must be run one at a time.
+
+## P7 — Design System & Marketing Home
+
+Status: In progress (usage limit reached mid-verification). No schema, RLS, RPC, server action, route or validation changes.
+
+### Done (type-check, lint and production build pass)
+- [x] shadcn/ui (base-nova, Base UI primitives) with only the needed components; `next-themes` light/dark/system with persistence; indigo EventJini primary; Geist typography; one `--radius` system
+- [x] EventJini app tokens vs per-event tokens (`--event-primary/accent` + contrast-computed foregrounds) kept separate
+- [x] Dashboard shell: sidebar, sticky header, account menu (theme + sign out), mobile Sheet; event workspace with grouped, role-filtered navigation (Event / Operations / Growth / Manage)
+- [x] Shared components: PageHeader, StatusBadge, EmptyState, MetricCard, FormSection, FieldError/FormMessage, DataTableShell, filter pills, AlertDialog-based confirmations (replaced every `window.confirm`), Toaster
+- [x] Rebuilt: event overview, public event page, register page + form (three sections, one error pattern), ticket page (QR always black-on-white), My Tickets, sponsor public page, sponsor portal (distinct header), auth pages, invite page, events list, dashboard home, guests / delivery log / team tables
+- [x] All hard-coded zinc/red/green/amber colours swept to semantic tokens; legacy `components/ui.tsx` and old event nav removed
+- [x] Marketing home `/` (header + mobile sheet, hero, features, how it works, sample-data previews, marked testimonial placeholders, free-pilot pricing, CTA, footer)
+- [x] Automated WCAG contrast check: home + 12 dashboard pages + public pages in dark mode, 0 failures (one real issue found and fixed in the branding preview)
+- [x] Verified: theme persists, sign-out works, logged-out `/dashboard` redirects, registration empty-submit validation
+
+### Not yet verified
+- Full guest registration → ticket → check-in flow in the new UI; scanner-role navigation; mobile shell Sheet; light-mode contrast sweep; keyboard pass on dialogs; P3/P4/P5 regression suites re-run (backend untouched, but not re-run)

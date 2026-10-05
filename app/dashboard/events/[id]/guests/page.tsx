@@ -1,5 +1,14 @@
+import { Download, Search, Users } from "lucide-react";
 import Link from "next/link";
-import { EventNav } from "@/components/event-nav";
+import { StatusBadge } from "@/components/eventjini/status-badge";
+import { DataTableShell } from "@/components/eventjini/data-table-shell";
+import { EmptyState } from "@/components/eventjini/empty-state";
+import { FormMessage } from "@/components/eventjini/form-feedback";
+import { PageHeader } from "@/components/eventjini/page-header";
+import { buttonVariants } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import { btnPrimary, btnSecondary, filterPill, inputCls } from "@/components/eventjini/classes";
 import { ADMIN_ROLES, requireEventAccess } from "@/lib/event-access";
 import { GUEST_FILTERS, parseFilter, queryGuests, sanitizeSearch } from "@/lib/guests";
 import { STATUS_LABELS, type RegistrationField } from "@/lib/registration";
@@ -13,7 +22,7 @@ export default async function GuestsPage({
 }) {
   const { id } = await params;
   const sp = await searchParams;
-  const { supabase, event, role } = await requireEventAccess(id, ADMIN_ROLES);
+  const { supabase } = await requireEventAccess(id, ADMIN_ROLES);
 
   const q = sanitizeSearch(sp.q);
   const filter = parseFilter(sp.status);
@@ -41,95 +50,86 @@ export default async function GuestsPage({
   const exportHref = `/api/events/${id}/guests.csv${exportParams.size ? `?${exportParams}` : ""}`;
 
   return (
-    <main className="mx-auto min-h-screen max-w-4xl space-y-6 px-4 py-10">
-      <EventNav eventId={id} eventTitle={event.title} role={role} active="guests" />
+    <div className="max-w-4xl space-y-6">
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold text-zinc-900">
-          Guests <span className="text-zinc-500">{counts.all}</span>
-        </h2>
-        <a
-          href={exportHref}
-          className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
-        >
-          Export CSV
-        </a>
-      </div>
+      <PageHeader
+        level={2}
+        title={<>Guests <span className="font-normal text-muted-foreground tabular-nums">{counts.all}</span></>}
+        description="Everyone registered for this event. Search, filter, open details or export."
+        actions={<a href={exportHref} className={btnSecondary}><Download aria-hidden /> Export CSV</a>}
+      />
 
-      <form method="get" className="flex flex-wrap gap-2">
-        <input
-          name="q"
-          defaultValue={q}
-          placeholder="Search name, email, company or ticket code"
-          className="min-w-64 flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none"
-        />
-        {filter !== "all" && <input type="hidden" name="status" value={filter} />}
-        <button type="submit" className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700">
-          Search
-        </button>
-        {q && (
-          <Link href={qs("all").replace(/\?.*/, "") + (filter !== "all" ? `?status=${filter}` : "")} className="self-center text-sm text-zinc-600 underline">
-            Clear
-          </Link>
+      <DataTableShell
+        toolbar={
+          <>
+            <form method="get" className="flex min-w-0 flex-1 flex-wrap gap-2">
+              <input name="q" aria-label="Search guests" defaultValue={q} placeholder="Search name, email, company or ticket code" className={cn(inputCls, "min-w-56 flex-1")} />
+              {filter !== "all" && <input type="hidden" name="status" value={filter} />}
+              <button type="submit" className={btnPrimary}><Search aria-hidden /> Search</button>
+              {q && (
+                <Link href={qs("all").replace(/\?.*/, "") + (filter !== "all" ? `?status=${filter}` : "")} className={buttonVariants({ variant: "ghost", size: "lg" })}>
+                  Clear
+                </Link>
+              )}
+            </form>
+            <nav aria-label="Filter by status" className="flex w-full flex-wrap gap-2">
+              {GUEST_FILTERS.map((f) => (
+                <Link key={f.key} href={qs(f.key)} aria-current={filter === f.key ? "page" : undefined} className={filterPill(filter === f.key)}>
+                  {f.label} <span className="tabular-nums opacity-70">{counts[f.key] ?? 0}</span>
+                </Link>
+              ))}
+            </nav>
+          </>
+        }
+      >
+        {error ? (
+          <div className="p-4"><FormMessage>Could not load guests. Please refresh and try again.</FormMessage></div>
+        ) : rows.length === 0 ? (
+          <div className="p-6"><EmptyState icon={Users} title={q || filter !== "all" ? "No guests match" : "No guests yet"} description={q || filter !== "all" ? "Try a different search or filter." : "Share your event page to start collecting registrations."} /></div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead className="hidden md:table-cell">Email</TableHead>
+                <TableHead className="hidden lg:table-cell">Company</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r) => (
+                <TableRow key={r.id} className="align-top">
+                  <TableCell className="max-w-72 whitespace-normal">
+                    <details className="group">
+                      <summary className="cursor-pointer list-none font-medium hover:underline [&::-webkit-details-marker]:hidden">
+                        {r.first_name} {r.last_name}
+                        <span className="block text-xs font-normal text-muted-foreground md:hidden">{r.email}</span>
+                      </summary>
+                      <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <dt>Phone</dt><dd className="text-foreground">{r.phone ?? "—"}</dd>
+                        <dt>Job title</dt><dd className="text-foreground">{r.job_title ?? "—"}</dd>
+                        <dt>Ticket</dt><dd className="font-mono text-foreground">{r.ticket_code ?? "—"}</dd>
+                        <dt>Registered</dt><dd className="text-foreground">{new Date(r.created_at).toISOString().replace("T", " ").slice(0, 16)} UTC</dd>
+                        {r.checked_in_at && (<><dt>Checked in</dt><dd className="text-foreground">{new Date(r.checked_in_at).toISOString().replace("T", " ").slice(0, 16)} UTC</dd></>)}
+                        {Object.entries(r.custom_answers).map(([key, value]) => (
+                          <div key={key} className="contents">
+                            <dt>{labels.get(key) ?? key}</dt>
+                            <dd className="whitespace-pre-line text-foreground">{typeof value === "boolean" ? (value ? "Yes" : "No") : String(value)}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </details>
+                  </TableCell>
+                  <TableCell className="hidden text-muted-foreground md:table-cell">{r.email}</TableCell>
+                  <TableCell className="hidden text-muted-foreground lg:table-cell">{r.company_name ?? "—"}</TableCell>
+                  <TableCell><StatusBadge status={r.status} label={STATUS_LABELS[r.status]} /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
-      </form>
-
-      <nav className="flex flex-wrap gap-2 text-sm">
-        {GUEST_FILTERS.map((f) => (
-          <Link
-            key={f.key}
-            href={qs(f.key)}
-            className={`rounded-full px-3 py-1 ${filter === f.key ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"}`}
-          >
-            {f.label} {counts[f.key] ?? 0}
-          </Link>
-        ))}
-      </nav>
-
-      {error && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-          Could not load guests. Please refresh and try again.
-        </p>
-      )}
-      {!error && rows.length === 0 && (
-        <div className="rounded-xl bg-white p-8 text-center text-zinc-600 shadow-sm">No guests match.</div>
-      )}
-
-      <ul className="space-y-3">
-        {rows.map((r) => (
-          <li key={r.id} className="rounded-xl bg-white p-4 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <p className="font-medium text-zinc-900">
-                  {r.first_name} {r.last_name}
-                </p>
-                <p className="text-sm text-zinc-600">{r.email}</p>
-                <p className="text-sm text-zinc-600">{r.company_name ?? "—"}</p>
-              </div>
-              <p className="text-sm font-medium text-zinc-700">{r.status === "checked_in" ? "Checked in" : STATUS_LABELS[r.status]}</p>
-            </div>
-            <details className="mt-2 text-sm">
-              <summary className="cursor-pointer text-zinc-700 underline">Details</summary>
-              <dl className="mt-2 space-y-1 text-zinc-700">
-                <div><dt className="inline font-medium">Phone: </dt><dd className="inline">{r.phone ?? "—"}</dd></div>
-                <div><dt className="inline font-medium">Job title: </dt><dd className="inline">{r.job_title ?? "—"}</dd></div>
-                <div><dt className="inline font-medium">Ticket code: </dt><dd className="inline font-mono">{r.ticket_code ?? "—"}</dd></div>
-                <div><dt className="inline font-medium">Registered: </dt><dd className="inline">{new Date(r.created_at).toISOString().replace("T", " ").slice(0, 16)} UTC</dd></div>
-                {r.checked_in_at && (
-                  <div><dt className="inline font-medium">Checked in: </dt><dd className="inline">{new Date(r.checked_in_at).toISOString().replace("T", " ").slice(0, 16)} UTC</dd></div>
-                )}
-                {Object.entries(r.custom_answers).map(([key, value]) => (
-                  <div key={key}>
-                    <dt className="inline font-medium">{labels.get(key) ?? key}: </dt>
-                    <dd className="inline whitespace-pre-line">{typeof value === "boolean" ? (value ? "Yes" : "No") : String(value)}</dd>
-                  </div>
-                ))}
-              </dl>
-            </details>
-          </li>
-        ))}
-      </ul>
-      {rows.length === 500 && <p className="text-center text-xs text-zinc-500">Showing the first 500 matches. Narrow your search to see others.</p>}
-    </main>
+      </DataTableShell>
+      {rows.length === 500 && <p className="text-center text-xs text-muted-foreground">Showing the first 500 matches. Narrow your search to see others.</p>}
+    </div>
   );
 }

@@ -1,4 +1,9 @@
-import Link from "next/link";
+import { btnPrimary, btnSecondary, inputCls } from "@/components/eventjini/classes";
+import { Download, Search, Users } from "lucide-react";
+import { EmptyState } from "@/components/eventjini/empty-state";
+import { PageHeader } from "@/components/eventjini/page-header";
+import { cn } from "@/lib/utils";
+import { SponsorPortalHeader } from "@/components/eventjini/sponsor-portal-header";
 import { LeadNotes } from "@/components/lead-notes";
 import { sanitizeSearch } from "@/lib/guests";
 import { requireOwnedPortal } from "@/lib/sponsor-access";
@@ -13,7 +18,7 @@ export default async function SponsorLeadsPage({
 }) {
   const { id } = await params;
   const q = sanitizeSearch((await searchParams).q);
-  const { supabase, sponsor, eventTitle } = await requireOwnedPortal(id);
+  const { supabase, sponsor, eventTitle, tierName } = await requireOwnedPortal(id);
 
   let query = supabase.from("sponsor_leads").select(LEAD_COLUMNS).eq("sponsor_registration_id", id).order("captured_at", { ascending: false }).limit(500);
   if (q) {
@@ -27,43 +32,43 @@ export default async function SponsorLeadsPage({
   const leads = (data ?? []) as Lead[];
 
   return (
-    <main className="mx-auto min-h-screen max-w-3xl space-y-6 px-4 py-10">
-      <div>
-        <Link href={`/dashboard/sponsor/portal/${id}`} className="text-sm text-zinc-500 hover:underline">← {sponsor.company_name}</Link>
-        <p className="text-sm text-zinc-600">{eventTitle}</p>
-        <h1 className="text-2xl font-semibold text-zinc-900">Leads <span className="text-zinc-500">{count ?? 0}</span></h1>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <SponsorPortalHeader id={id} company={sponsor.company_name} eventTitle={eventTitle} tierName={tierName} active="leads" />
 
-      <div className="flex flex-wrap gap-2">
-        <form method="get" className="flex min-w-64 flex-1 gap-2">
-          <input name="q" defaultValue={q} placeholder="Search name, email, company or job title" className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-900 focus:outline-none" />
-          <button type="submit" className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700">Search</button>
-        </form>
-        <a href={`/api/sponsor/portal/${id}/leads.csv${q ? `?q=${encodeURIComponent(q)}` : ""}`} className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50">Export CSV</a>
-      </div>
+      <PageHeader
+        level={2}
+        title={<>Leads <span className="font-normal text-muted-foreground tabular-nums">{count ?? 0}</span></>}
+        description="Only attendees who enabled sponsor lead sharing appear here."
+        actions={<a href={`/api/sponsor/portal/${id}/leads.csv${q ? `?q=${encodeURIComponent(q)}` : ""}`} className={btnSecondary}><Download aria-hidden /> Export CSV</a>}
+      />
 
-      {leads.length === 0 && <div className="rounded-xl bg-white p-8 text-center text-zinc-600 shadow-sm">No leads yet.</div>}
+      <form method="get" className="flex flex-wrap gap-2">
+        <input name="q" aria-label="Search leads" defaultValue={q} placeholder="Search name, email, company or job title" className={cn(inputCls, "min-w-56 flex-1")} />
+        <button type="submit" className={btnPrimary}><Search aria-hidden /> Search</button>
+      </form>
+
+      {leads.length === 0 && <EmptyState icon={Users} title={q ? "No leads match your search" : "No leads yet"} description={q ? undefined : "Scan an attendee's QR ticket to capture a lead."} />}
 
       <ul className="space-y-3">
         {leads.map((l) => (
-          <li key={l.id} className="rounded-xl bg-white p-4 shadow-sm">
+          <li key={l.id} className="rounded-xl border bg-card p-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <p className="font-medium text-zinc-900">{l.first_name} {l.last_name}</p>
-                <p className="text-sm text-zinc-600">{[l.company_name, l.job_title].filter(Boolean).join(" · ") || "—"}</p>
+                <p className="font-medium text-foreground">{l.first_name} {l.last_name}</p>
+                <p className="text-sm text-muted-foreground">{[l.company_name, l.job_title].filter(Boolean).join(" · ") || "—"}</p>
               </div>
-              <p className="text-xs text-zinc-500">{new Date(l.captured_at).toISOString().replace("T", " ").slice(0, 16)} UTC</p>
+              <p className="text-xs text-muted-foreground">{new Date(l.captured_at).toISOString().replace("T", " ").slice(0, 16)} UTC</p>
             </div>
             <details className="mt-2 text-sm">
-              <summary className="cursor-pointer text-zinc-700 underline">Details &amp; notes</summary>
+              <summary className="cursor-pointer text-foreground underline">Details &amp; notes</summary>
               <div className="mt-2 space-y-2">
-                <p className="text-zinc-700">{l.email}</p>
+                <p className="text-foreground">{l.email}</p>
                 <LeadNotes sponsorId={id} leadId={l.id} initial={l.notes ?? ""} />
               </div>
             </details>
           </li>
         ))}
       </ul>
-    </main>
+    </div>
   );
 }

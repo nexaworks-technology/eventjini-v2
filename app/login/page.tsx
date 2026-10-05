@@ -1,3 +1,4 @@
+import { AuthLayout } from "@/components/eventjini/auth-layout";
 import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/auth-form";
 import { safeNext } from "@/lib/safe-next";
@@ -6,6 +7,8 @@ import { createClient } from "@/utils/supabase/server";
 const ERROR_MESSAGES: Record<string, string> = {
   oauth_failed: "Google sign-in could not be completed. Please try again.",
 };
+
+export const metadata = { title: "Sign in" };
 
 export default async function LoginPage({
   searchParams,
@@ -21,14 +24,8 @@ export default async function LoginPage({
   if (user && !user.is_anonymous) redirect(next ?? "/dashboard");
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4">
-      <div className="w-full max-w-sm space-y-6 rounded-xl bg-white p-8 shadow-sm">
-        <div className="space-y-1 text-center">
-          <p className="text-sm font-semibold tracking-wide text-zinc-500">EventJini</p>
-          <h1 className="text-2xl font-semibold text-zinc-900">Sign in</h1>
-        </div>
-        <AuthForm mode="login" next={next} initialError={error ? ERROR_MESSAGES[error] : undefined} />
-      </div>
-    </main>
+    <AuthLayout title="Welcome back" description="Sign in to your EventJini workspace.">
+      <AuthForm mode="login" next={next} initialError={error ? ERROR_MESSAGES[error] : undefined} />
+    </AuthLayout>
   );
 }

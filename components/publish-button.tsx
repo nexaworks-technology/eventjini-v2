@@ -1,5 +1,6 @@
 "use client";
 
+import { btnPrimary } from "@/components/eventjini/classes";
 import { useState, useTransition } from "react";
 import { publishEvent } from "@/app/dashboard/events/actions";
 
@@ -18,11 +19,11 @@ export function PublishButton({ eventId }: { eventId: string }) {
             if (result && !result.ok) setError(result.error);
           })
         }
-        className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60"
+        className={btnPrimary}
       >
         {pending ? "Publishing..." : "Publish event"}
       </button>
-      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }

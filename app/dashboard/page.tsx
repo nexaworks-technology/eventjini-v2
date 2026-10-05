@@ -1,6 +1,8 @@
+import { CalendarDays, Ticket } from "lucide-react";
 import Link from "next/link";
+import { PageHeader, SectionTitle } from "@/components/eventjini/page-header";
 import { redirect } from "next/navigation";
-import { SignOutButton } from "@/components/sign-out-button";
+import { InstallButton } from "@/components/install-button";
 import { createClient } from "@/utils/supabase/server";
 
 export default async function DashboardPage() {
@@ -20,39 +22,42 @@ export default async function DashboardPage() {
     .maybeSingle();
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4">
-      <div className="w-full max-w-md space-y-6 rounded-xl bg-white p-8 shadow-sm">
-        <p className="text-sm font-semibold tracking-wide text-zinc-500">EventJini</p>
-        <div className="space-y-2">
-          {profile?.full_name && (
-            <h1 className="text-2xl font-semibold text-zinc-900">Welcome, {profile.full_name}</h1>
-          )}
-          <p className="text-sm text-zinc-600">You&apos;re signed in as:</p>
-          <p className="break-all font-medium text-zinc-900">{user.email}</p>
-        </div>
-        <Link
-          href="/dashboard/events"
-          className="block rounded-md bg-zinc-900 px-4 py-2 text-center text-sm font-medium text-white hover:bg-zinc-700"
-        >
-          Your events
+    <div className="mx-auto max-w-4xl space-y-6">
+      <PageHeader
+        title={profile?.full_name ? `Welcome, ${profile.full_name}` : "Welcome"}
+        description={<>Signed in as <span className="font-medium text-foreground">{user.email}</span></>}
+        actions={<InstallButton />}
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Link href="/dashboard/events" className="group rounded-xl border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-accent/40">
+          <CalendarDays className="size-5 text-primary" aria-hidden />
+          <p className="mt-2 font-medium">Your events</p>
+          <p className="text-sm text-muted-foreground">Create, run and measure your events.</p>
         </Link>
-        {portals.length > 0 && (
-          <div className="space-y-2 rounded-md border border-zinc-200 p-3">
-            <p className="text-sm font-medium text-zinc-900">Sponsor portals</p>
-            <ul className="space-y-1 text-sm">
-              {portals.map((p) => (
-                <li key={p.id}>
-                  <Link href={`/dashboard/sponsor/portal/${p.id}`} className="underline">
-                    {p.company_name} · {p.event_title}
-                  </Link>
-                  <span className="text-zinc-500"> ({p.tier_name}{p.claimed ? "" : ", claim pending"})</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        <SignOutButton />
+        <Link href="/my-tickets" className="group rounded-xl border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-accent/40">
+          <Ticket className="size-5 text-primary" aria-hidden />
+          <p className="mt-2 font-medium">My Tickets</p>
+          <p className="text-sm text-muted-foreground">Events you&apos;re attending.</p>
+        </Link>
       </div>
-    </main>
+
+      {portals.length > 0 && (
+        <section className="space-y-3">
+          <SectionTitle description="Portals for sponsorships approved under your email.">Sponsor portals</SectionTitle>
+          <ul className="divide-y overflow-hidden rounded-xl border bg-card">
+            {portals.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 p-4">
+                <div className="min-w-0">
+                  <Link href={`/dashboard/sponsor/portal/${p.id}`} className="font-medium hover:underline">{p.company_name}</Link>
+                  <p className="text-sm text-muted-foreground">{p.event_title} · {p.tier_name}</p>
+                </div>
+                {!p.claimed && <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">Claim pending</span>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
   );
 }

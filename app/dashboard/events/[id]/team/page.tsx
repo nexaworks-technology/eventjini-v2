@@ -1,10 +1,9 @@
-import { EventNav } from "@/components/event-nav";
 import { TeamManager, type PendingInvite, type TeamMember } from "@/components/team-manager";
 import { ADMIN_ROLES, requireEventAccess } from "@/lib/event-access";
 
 export default async function TeamPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, event, role } = await requireEventAccess(id, ADMIN_ROLES);
+  const { supabase } = await requireEventAccess(id, ADMIN_ROLES);
 
   const [{ data: team }, { data: inviteRows }] = await Promise.all([
     supabase.rpc("event_team", { p_event_id: id }),
@@ -18,13 +17,12 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
   ]);
 
   return (
-    <main className="mx-auto min-h-screen max-w-3xl space-y-6 px-4 py-10">
-      <EventNav eventId={id} eventTitle={event.title} role={role} active="team" />
+    <div className="max-w-3xl space-y-6">
       <TeamManager
         eventId={id}
         members={(Array.isArray(team) ? team : []) as TeamMember[]}
         invites={(inviteRows ?? []) as PendingInvite[]}
       />
-    </main>
+    </div>
   );
 }

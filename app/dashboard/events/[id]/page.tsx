@@ -1,8 +1,23 @@
+import { BarChart3, CalendarClock, ExternalLink, ListChecks, Mail, MapPin, Pencil, ScanLine, Users } from "lucide-react";
 import Link from "next/link";
-import { EventNav } from "@/components/event-nav";
+import { FormMessage } from "@/components/eventjini/form-feedback";
+import { MetricCard } from "@/components/eventjini/metric-card";
+import { SectionTitle } from "@/components/eventjini/page-header";
 import { PublishButton } from "@/components/publish-button";
-import { ADMIN_ROLES, requireEventAccess } from "@/lib/event-access";
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { ADMIN_ROLES, CHECKIN_ROLES, requireEventAccess, TASK_READ_ROLES, type EventRole } from "@/lib/event-access";
 import { formatEventWhen } from "@/lib/time";
+import { cn } from "@/lib/utils";
+
+const QUICK_LINKS: { path: string; label: string; description: string; roles: EventRole[] | null; icon: typeof Users }[] = [
+  { path: "/guests", label: "Guests", description: "Search, filter and export attendees", roles: ADMIN_ROLES, icon: Users },
+  { path: "/check-in", label: "Check-in", description: "Scan QR tickets or enter codes", roles: CHECKIN_ROLES, icon: ScanLine },
+  { path: "/agenda", label: "Agenda", description: "Sessions, speakers and timing", roles: null, icon: CalendarClock },
+  { path: "/tasks", label: "Tasks", description: "Your event operations board", roles: TASK_READ_ROLES, icon: ListChecks },
+  { path: "/communications", label: "Communications", description: "Email your attendees", roles: ADMIN_ROLES, icon: Mail },
+  { path: "/analytics", label: "Analytics", description: "Traffic, registrations and attendance", roles: TASK_READ_ROLES, icon: BarChart3 },
+];
 
 export default async function EventOverviewPage({
   params,
@@ -19,82 +34,92 @@ export default async function EventOverviewPage({
   const isPublished = event.status === "published";
   const isAdmin = ADMIN_ROLES.includes(role);
 
-  const { data: sessions } = await supabase
-    .from("event_sessions")
-    .select("id,title,speaker,start_at,end_at")
-    .eq("event_id", id)
-    .order("start_at")
-    .limit(6);
+  const [{ data: sessions }, { data: regRows }] = await Promise.all([
+    supabase.from("event_sessions").select("id,title,speaker,start_at,end_at").eq("event_id", id).order("start_at").limit(6),
+    isAdmin ? supabase.from("registrations").select("status").eq("event_id", id) : Promise.resolve({ data: null }),
+  ]);
+
+  const counts: Record<string, number> = {};
+  for (const r of regRows ?? []) counts[r.status] = (counts[r.status] ?? 0) + 1;
+  const confirmed = (counts.approved ?? 0) + (counts.checked_in ?? 0);
+  const links = QUICK_LINKS.filter((l) => !l.roles || l.roles.includes(role));
 
   return (
-    <main className="mx-auto min-h-screen max-w-2xl space-y-6 px-4 py-10">
-      <EventNav eventId={id} eventTitle={event.title} role={role} active="overview" />
-
-      {denied === "1" && (
-        <p role="alert" className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          You don&apos;t have access to that page for this event.
-        </p>
-      )}
-      {published === "1" && isPublished && (
-        <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">Your event is published.</p>
-      )}
+    <div className="max-w-4xl space-y-6">
+      {denied === "1" && <FormMessage tone="warning">You don&apos;t have access to that page for this event.</FormMessage>}
+      {published === "1" && isPublished && <FormMessage tone="success">Your event is published.</FormMessage>}
 
       {role === "scanner" && (
-        <Link
-          href={`/dashboard/events/${id}/check-in`}
-          className="block rounded-xl bg-zinc-900 px-6 py-5 text-center text-lg font-medium text-white hover:bg-zinc-700"
-        >
-          Start check-in
+        <Link href={`/dashboard/events/${id}/check-in`} className={cn(buttonVariants({ size: "lg" }), "h-14 w-full text-base")}>
+          <ScanLine aria-hidden /> Start check-in
         </Link>
       )}
 
-      <div className="space-y-4 rounded-xl bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium capitalize text-zinc-500">{event.status.replace("_", " ")}</p>
-
-        <div className="space-y-1 text-sm text-zinc-800">
-          <p>{when.date}</p>
-          <p>{when.time}</p>
-          <p className="text-zinc-600">{event.timezone}</p>
-          {event.location && <p>{event.location}</p>}
-          {event.capacity !== null && <p>Capacity: {event.capacity}</p>}
-        </div>
-
-        {isPublished && isAdmin && (
-          <div className="text-sm">
-            <p className="text-zinc-500">Public URL:</p>
-            <p className="font-medium text-zinc-900">/e/{event.slug}</p>
-          </div>
-        )}
-
-        {isAdmin && (
-          <div className="flex flex-wrap items-start gap-3">
-            {isPublished && (
-              <Link href={`/e/${event.slug}`} className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700">
-                View event
-              </Link>
+      <Card>
+        <CardContent className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-1.5 text-sm">
+            <p className="font-medium text-foreground">{when.date}</p>
+            <p className="text-muted-foreground">{when.time} · {event.timezone}</p>
+            {event.location && (
+              <p className="flex items-center gap-1.5 text-muted-foreground"><MapPin className="size-3.5" aria-hidden /> {event.location}</p>
             )}
-            <Link href={`/dashboard/events/${event.id}/edit`} className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50">
-              Edit event
-            </Link>
-            {event.status === "draft" && <PublishButton eventId={event.id} />}
+            {isPublished && isAdmin && <p className="pt-1 text-xs text-muted-foreground">Public URL: <span className="font-mono text-foreground">/e/{event.slug}</span></p>}
           </div>
-        )}
-      </div>
+          {isAdmin && (
+            <div className="flex flex-wrap items-start gap-2">
+              {isPublished && (
+                <Link href={`/e/${event.slug}`} className={buttonVariants({ variant: "outline", size: "lg" })}>
+                  View public page <ExternalLink aria-hidden />
+                </Link>
+              )}
+              <Link href={`/dashboard/events/${event.id}/edit`} className={buttonVariants({ variant: "outline", size: "lg" })}>
+                <Pencil aria-hidden /> Edit
+              </Link>
+              {event.status === "draft" && <PublishButton eventId={event.id} />}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {isAdmin && (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <MetricCard label="Registrations" value={(regRows ?? []).length} hint={counts.pending ? `${counts.pending} pending approval` : undefined} />
+          <MetricCard label="Checked in" value={counts.checked_in ?? 0} />
+          <MetricCard label="Capacity" value={event.capacity === null ? "No limit" : `${confirmed} / ${event.capacity}`} hint={event.capacity === null ? `${confirmed} confirmed` : "confirmed seats"} />
+        </div>
+      )}
+
+      <section className="space-y-3">
+        <SectionTitle>Event operations</SectionTitle>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {links.map(({ path, label, description, icon: Icon }) => (
+            <Link key={path} href={`/dashboard/events/${id}${path}`} className="group rounded-xl border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/40">
+              <Icon className="size-5 text-primary" aria-hidden />
+              <p className="mt-2 font-medium">{label}</p>
+              <p className="text-sm text-muted-foreground">{description}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       {(sessions?.length ?? 0) > 0 && (
-        <section className="space-y-2 rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="font-semibold text-zinc-900">Agenda</h2>
-          <ul className="space-y-2 text-sm">
-            {sessions!.map((s) => (
-              <li key={s.id}>
-                <span className="text-zinc-500">{formatEventWhen(s.start_at, s.end_at, event.timezone).time}</span>{" "}
-                <span className="font-medium text-zinc-900">{s.title}</span>
-                {s.speaker && <span className="text-zinc-600"> · {s.speaker}</span>}
-              </li>
-            ))}
-          </ul>
+        <section className="space-y-3">
+          <SectionTitle>Agenda</SectionTitle>
+          <Card size="sm">
+            <CardContent>
+              <ul className="divide-y">
+                {sessions!.map((s) => (
+                  <li key={s.id} className="flex flex-wrap gap-x-3 py-2 text-sm first:pt-0 last:pb-0">
+                    <span className="w-36 shrink-0 text-muted-foreground tabular-nums">{formatEventWhen(s.start_at, s.end_at, event.timezone).time}</span>
+                    <span className="font-medium">{s.title}</span>
+                    {s.speaker && <span className="text-muted-foreground">{s.speaker}</span>}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
         </section>
       )}
-    </main>
+    </div>
   );
 }

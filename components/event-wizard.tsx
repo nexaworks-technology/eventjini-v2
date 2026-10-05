@@ -1,7 +1,11 @@
 "use client";
 
+import { btnPrimary, btnSecondary, inputCls } from "@/components/eventjini/classes";
+import { ImagePlus, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { toast } from "sonner";
 import {
   checkSlugAvailability,
   saveEvent,
@@ -13,10 +17,14 @@ import {
   type EventFormValues,
   type FieldErrors,
 } from "@/lib/events";
+import { setCoverImage } from "@/app/dashboard/events/[id]/settings/actions";
 import { SLUG_RE, slugify } from "@/lib/slug";
+import { createClient } from "@/utils/supabase/client";
 import { formatEventWhen, zonedToUtc } from "@/lib/time";
 
 const STEPS = ["Basics", "Date & Time", "Settings", "Review"];
+const COVER_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+const COVER_MAX_BYTES = 5 * 1024 * 1024;
 
 type Props = {
   mode: "create" | "edit";
@@ -26,8 +34,6 @@ type Props = {
   isPublished?: boolean;
 };
 
-const inputCls =
-  "w-full rounded-md border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-900 focus:outline-none";
 
 function Field({
   label,
@@ -42,10 +48,10 @@ function Field({
 }) {
   return (
     <label className="block space-y-1">
-      <span className="text-sm font-medium text-zinc-700">{label}</span>
+      <span className="text-sm font-medium text-foreground">{label}</span>
       {children}
-      {hint && !error && <span className="block text-xs text-zinc-500">{hint}</span>}
-      {error && <span className="block text-xs text-red-600">{error}</span>}
+      {hint && !error && <span className="block text-xs text-muted-foreground">{hint}</span>}
+      {error && <span className="block text-xs text-destructive">{error}</span>}
     </label>
   );
 }
@@ -60,6 +66,11 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
   const [slugResult, setSlugResult] = useState<{ slug: string; state: SlugCheck["state"] } | null>(null);
   const [failedImage, setFailedImage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverError, setCoverError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const detectedTz = useSyncExternalStore(
     () => () => {},
@@ -138,7 +149,22 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
       return;
     }
     startTransition(async () => {
-      const result = await saveEvent(values, intent, eventId);
+      const result = await saveEvent(values, intent, eventId, coverFile ? { noRedirect: true } : undefined);
+      if (result.ok && coverFile) {
+        // The event now exists, so the storage policy (event admins only) allows the upload.
+        const id = result.eventId ?? eventId!;
+        let uploaded = false;
+        try {
+          const path = `events/${id}/cover/${crypto.randomUUID()}.${COVER_TYPES[coverFile.type]}`;
+          const { error } = await createClient().storage.from("event-assets").upload(path, coverFile, { contentType: coverFile.type, upsert: false });
+          if (!error) uploaded = (await setCoverImage(id, path)).ok;
+        } catch {
+          uploaded = false;
+        }
+        if (!uploaded) toast.error("Your event was saved, but the cover image could not be uploaded. You can add it in Settings.");
+        router.push(uploaded ? `/dashboard/events/${id}${intent === "publish" ? "?published=1" : ""}` : `/dashboard/events/${id}/settings`);
+        return;
+      }
       if (result && !result.ok) {
         setFormError(result.error ?? "Could not save the event. Please try again.");
         if (result.fieldErrors) {
@@ -162,10 +188,10 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
             key={label}
             className={`rounded-full px-3 py-1 ${
               i === step
-                ? "bg-zinc-900 text-white"
+                ? "bg-primary text-primary-foreground"
                 : i < step
-                  ? "bg-zinc-200 text-zinc-800"
-                  : "bg-zinc-100 text-zinc-500"
+                  ? "bg-muted text-foreground"
+                  : "bg-muted text-muted-foreground"
             }`}
           >
             {i + 1}. {label}
@@ -173,7 +199,7 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
         ))}
       </ol>
 
-      <div className="space-y-5 rounded-xl bg-white p-6 shadow-sm">
+      <div className="space-y-5 rounded-xl bg-card p-6 shadow-sm">
         {step === 0 && (
           <>
             <Field label="Event title" error={errors.title}>
@@ -195,18 +221,18 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
                 }}
                 onBlur={() => update("slug", slugify(values.slug))}
               />
-              <span className="block text-xs text-zinc-500">
+              <span className="block text-xs text-muted-foreground">
                 eventjini.com/e/{values.slug || "your-event"}
               </span>
-              {slugState === "checking" && <span className="block text-xs text-zinc-500">Checking availability...</span>}
+              {slugState === "checking" && <span className="block text-xs text-muted-foreground">Checking availability...</span>}
               {slugState === "available" && (
-                <span className="block text-xs text-green-700">✓ {values.slug} is available</span>
+                <span className="block text-xs text-success">✓ {values.slug} is available</span>
               )}
               {slugState === "taken" && (
-                <span className="block text-xs text-red-600">✕ {values.slug} is already taken</span>
+                <span className="block text-xs text-destructive">✕ {values.slug} is already taken</span>
               )}
               {slugState === "error" && (
-                <span className="block text-xs text-zinc-500">
+                <span className="block text-xs text-muted-foreground">
                   Could not check availability right now; it will be verified when you save.
                 </span>
               )}
@@ -221,7 +247,55 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
               />
             </Field>
 
-            <Field label="Cover image URL (optional)" error={errors.coverImageUrl}>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Cover image (optional)</p>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                aria-label="Upload cover image"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!f) return;
+                  if (!COVER_TYPES[f.type]) return setCoverError("Unsupported file type. Use a JPEG, PNG or WebP image.");
+                  if (f.size > COVER_MAX_BYTES) return setCoverError("That image is larger than 5 MB. Choose a smaller file.");
+                  setCoverError(null);
+                  if (coverPreview) URL.revokeObjectURL(coverPreview);
+                  setCoverFile(f);
+                  setCoverPreview(URL.createObjectURL(f));
+                  update("coverImageUrl", "");
+                }}
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" className={btnSecondary} onClick={() => fileRef.current?.click()}>
+                  <ImagePlus aria-hidden /> {coverFile ? "Choose a different image" : "Upload an image"}
+                </button>
+                {coverFile && (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      if (coverPreview) URL.revokeObjectURL(coverPreview);
+                      setCoverFile(null);
+                      setCoverPreview(null);
+                    }}
+                  >
+                    <X className="size-3.5" aria-hidden /> Remove {coverFile.name}
+                  </button>
+                )}
+                <span className="text-xs text-muted-foreground">JPEG, PNG or WebP, up to 5 MB.</span>
+              </div>
+              {coverError && <p role="alert" className="text-xs font-medium text-destructive">{coverError}</p>}
+              {coverPreview && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={coverPreview} alt="Cover preview" className="h-40 w-full rounded-md object-cover" />
+              )}
+            </div>
+
+            {!coverFile && (
+            <Field label="Or paste an image URL" error={errors.coverImageUrl}>
               <input
                 className={inputCls}
                 value={values.coverImageUrl}
@@ -229,7 +303,8 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
                 placeholder="https://..."
               />
             </Field>
-            {values.coverImageUrl.trim() && !errors.coverImageUrl && /^https?:\/\//.test(values.coverImageUrl.trim()) && (
+            )}
+            {!coverFile && values.coverImageUrl.trim() && !errors.coverImageUrl && /^https?:\/\//.test(values.coverImageUrl.trim()) && (
               imageOk ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -239,7 +314,7 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
                   className="h-40 w-full rounded-md object-cover"
                 />
               ) : (
-                <p className="text-xs text-zinc-500">The image could not be loaded from that URL.</p>
+                <p className="text-xs text-muted-foreground">The image could not be loaded from that URL.</p>
               )
             )}
 
@@ -279,7 +354,7 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
                 ))}
               </select>
             </Field>
-            {errors.range && <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{errors.range}</p>}
+            {errors.range && <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{errors.range}</p>}
           </>
         )}
 
@@ -302,8 +377,8 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
                 onChange={(e) => update("requiresApproval", e.target.checked)}
               />
               <span>
-                <span className="block text-sm font-medium text-zinc-800">Require attendee approval</span>
-                <span className="block text-xs text-zinc-500">
+                <span className="block text-sm font-medium text-foreground">Require attendee approval</span>
+                <span className="block text-xs text-muted-foreground">
                   Registrations will require organizer approval when registration is added in a later phase.
                 </span>
               </span>
@@ -316,8 +391,8 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
                 onChange={(e) => update("requireB2bData", e.target.checked)}
               />
               <span>
-                <span className="block text-sm font-medium text-zinc-800">Require business information</span>
-                <span className="block text-xs text-zinc-500">
+                <span className="block text-sm font-medium text-foreground">Require business information</span>
+                <span className="block text-xs text-muted-foreground">
                   Used by the registration flow to require business details such as company and work information.
                 </span>
               </span>
@@ -327,37 +402,42 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
 
         {step === 3 && (
           <div className="space-y-5">
-            <h2 className="text-lg font-semibold text-zinc-900">Review your event</h2>
+            <h2 className="text-lg font-semibold text-foreground">Review your event</h2>
 
             <Section title="Basics" onEdit={() => setStep(0)}>
-              {values.coverImageUrl.trim() && imageOk && (
+              {coverPreview ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={values.coverImageUrl.trim()} alt="" className="mb-2 h-32 w-full rounded-md object-cover" />
+                <img src={coverPreview} alt="" className="mb-2 h-32 w-full rounded-md object-cover" />
+              ) : (
+                values.coverImageUrl.trim() && imageOk && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={values.coverImageUrl.trim()} alt="" className="mb-2 h-32 w-full rounded-md object-cover" />
+                )
               )}
-              <p className="font-medium text-zinc-900">{values.title}</p>
-              <p className="text-sm text-zinc-600">/e/{values.slug}</p>
-              {values.description && <p className="whitespace-pre-line text-sm text-zinc-700">{values.description}</p>}
-              {values.location && <p className="text-sm text-zinc-700">{values.location}</p>}
+              <p className="font-medium text-foreground">{values.title}</p>
+              <p className="text-sm text-muted-foreground">/e/{values.slug}</p>
+              {values.description && <p className="whitespace-pre-line text-sm text-foreground">{values.description}</p>}
+              {values.location && <p className="text-sm text-foreground">{values.location}</p>}
             </Section>
 
             <Section title="Date & Time" onEdit={() => setStep(1)}>
               {when ? (
                 <>
-                  <p className="text-sm text-zinc-800">{when.date}</p>
-                  <p className="text-sm text-zinc-800">{when.time}</p>
+                  <p className="text-sm text-foreground">{when.date}</p>
+                  <p className="text-sm text-foreground">{when.time}</p>
                 </>
               ) : (
-                <p className="text-sm text-red-600">Date and time are incomplete.</p>
+                <p className="text-sm text-destructive">Date and time are incomplete.</p>
               )}
-              <p className="text-sm text-zinc-600">{values.timezone}</p>
+              <p className="text-sm text-muted-foreground">{values.timezone}</p>
             </Section>
 
             <Section title="Settings" onEdit={() => setStep(2)}>
-              <p className="text-sm text-zinc-800">Capacity: {values.capacity.trim() || "Not set"}</p>
-              <p className="text-sm text-zinc-800">
+              <p className="text-sm text-foreground">Capacity: {values.capacity.trim() || "Not set"}</p>
+              <p className="text-sm text-foreground">
                 Registration approval: {values.requiresApproval ? "Required" : "Not required"}
               </p>
-              <p className="text-sm text-zinc-800">
+              <p className="text-sm text-foreground">
                 Business information: {values.requireB2bData ? "Required" : "Not required"}
               </p>
             </Section>
@@ -365,7 +445,7 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
         )}
 
         {formError && (
-          <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {formError}
           </p>
         )}
@@ -378,14 +458,14 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
               type="button"
               onClick={() => setStep(step - 1)}
               disabled={pending}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+              className={btnSecondary}
             >
               ← Back
             </button>
           ) : (
             <Link
               href={eventId ? `/dashboard/events/${eventId}` : "/dashboard/events"}
-              className="text-sm text-zinc-600 underline"
+              className="text-sm text-muted-foreground underline"
             >
               Cancel
             </Link>
@@ -396,7 +476,7 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
           <button
             type="button"
             onClick={next}
-            className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700"
+            className={btnPrimary}
           >
             Continue to {STEPS[step + 1]} →
           </button>
@@ -406,7 +486,7 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
               type="button"
               onClick={() => submit("draft")}
               disabled={pending}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
+              className={btnSecondary}
             >
               {pending ? "Saving..." : "Save as draft"}
             </button>
@@ -414,7 +494,7 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
               type="button"
               onClick={() => submit("publish")}
               disabled={pending}
-              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60"
+              className={btnPrimary}
             >
               Publish event
             </button>
@@ -425,7 +505,7 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
               type="button"
               onClick={() => submit("save")}
               disabled={pending}
-              className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-60"
+              className={btnSecondary}
             >
               {pending ? "Saving..." : "Save changes"}
             </button>
@@ -434,7 +514,7 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
                 type="button"
                 onClick={() => submit("publish")}
                 disabled={pending}
-                className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60"
+                className={btnPrimary}
               >
                 Save & publish
               </button>
@@ -456,10 +536,10 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-1 rounded-md border border-zinc-200 p-4">
+    <section className="space-y-1 rounded-md border border-border p-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{title}</h3>
-        <button type="button" onClick={onEdit} className="text-xs font-medium text-zinc-900 underline">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</h3>
+        <button type="button" onClick={onEdit} className="text-xs font-medium text-foreground underline">
           Edit
         </button>
       </div>

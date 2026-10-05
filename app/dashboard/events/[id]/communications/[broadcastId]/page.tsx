@@ -1,6 +1,10 @@
+import { filterPill } from "@/components/eventjini/classes";
+import { PageHeader } from "@/components/eventjini/page-header";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { EventNav } from "@/components/event-nav";
+import { DataTableShell } from "@/components/eventjini/data-table-shell";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { StatusBadge } from "@/components/eventjini/status-badge";
 import { QueueButtons } from "@/components/queue-buttons";
 import { ADMIN_ROLES, requireEventAccess } from "@/lib/event-access";
 import { UUID_RE } from "@/lib/registration";
@@ -27,7 +31,7 @@ export default async function BroadcastDetailPage({
   const { id, broadcastId } = await params;
   const sp = await searchParams;
   if (!UUID_RE.test(broadcastId)) notFound();
-  const { supabase, event, role } = await requireEventAccess(id, ADMIN_ROLES);
+  const { supabase } = await requireEventAccess(id, ADMIN_ROLES);
 
   const { data: broadcast } = await supabase
     .from("event_broadcasts")
@@ -55,20 +59,18 @@ export default async function BroadcastDetailPage({
   const bounced = (counts.bounced ?? 0) + (counts.complained ?? 0);
 
   return (
-    <main className="mx-auto min-h-screen max-w-3xl space-y-6 px-4 py-10">
-      <EventNav eventId={id} eventTitle={event.title} role={role} active="communications" />
+    <div className="max-w-3xl space-y-6">
 
       <div>
-        <Link href={`/dashboard/events/${id}/communications`} className="text-sm text-zinc-500 hover:underline">
+        <Link href={`/dashboard/events/${id}/communications`} className="text-sm text-muted-foreground hover:underline">
           ← Communications
         </Link>
-        <h2 className="text-xl font-semibold text-zinc-900">{broadcast.subject}</h2>
-        <p className="text-sm text-zinc-600">
+        <PageHeader level={2} title={broadcast.subject} description={<>
           {SEGMENT_LABEL[broadcast.segment] ?? broadcast.segment} · <span className="capitalize">{broadcast.status.replace("_", " ")}</span>
-        </p>
+        </>} />
       </div>
 
-      {sp.sent === "1" && <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">Broadcast queued. Delivery status updates below.</p>}
+      {sp.sent === "1" && <p className="rounded-md bg-success/10 px-3 py-2 text-sm text-success">Broadcast queued. Delivery status updates below.</p>}
 
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         {[
@@ -78,14 +80,14 @@ export default async function BroadcastDetailPage({
           ["Bounced", bounced],
           ["Failed", counts.failed ?? 0],
         ].map(([label, n]) => (
-          <div key={label as string} className="rounded-xl bg-white p-4 shadow-sm">
-            <dt className="text-xs text-zinc-500">{label}</dt>
-            <dd className="text-xl font-semibold text-zinc-900">{n}</dd>
+          <div key={label as string} className="rounded-xl bg-card p-4 shadow-sm">
+            <dt className="text-xs text-muted-foreground">{label}</dt>
+            <dd className="text-xl font-semibold text-foreground">{n}</dd>
           </div>
         ))}
       </dl>
       {((counts.queued ?? 0) + (counts.sending ?? 0)) > 0 && (
-        <p className="text-sm text-zinc-600">{(counts.queued ?? 0) + (counts.sending ?? 0)} message(s) still queued.</p>
+        <p className="text-sm text-muted-foreground">{(counts.queued ?? 0) + (counts.sending ?? 0)} message(s) still queued.</p>
       )}
 
       <QueueButtons eventId={id} broadcastId={broadcastId} queued={counts.queued ?? 0} failed={counts.failed ?? 0} />
@@ -95,25 +97,37 @@ export default async function BroadcastDetailPage({
           <Link
             key={f.key}
             href={f.key === "all" ? `/dashboard/events/${id}/communications/${broadcastId}` : `/dashboard/events/${id}/communications/${broadcastId}?filter=${f.key}`}
-            className={`rounded-full px-3 py-1 ${active.key === f.key ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"}`}
+            className={filterPill(active.key === f.key)}
           >
             {f.label}
           </Link>
         ))}
       </nav>
 
-      <ul className="divide-y divide-zinc-100 rounded-xl bg-white shadow-sm">
-        {deliveries.length === 0 && <li className="p-6 text-center text-zinc-600">No messages match.</li>}
-        {deliveries.map((d) => (
-          <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
-            <span className="text-zinc-900">{d.recipient_email}</span>
-            <span className="text-right">
-              <span className="font-medium text-zinc-700">{STATUS_LABEL[d.status] ?? d.status}</span>
-              {d.last_error && <span className="block text-xs text-zinc-500">{d.last_error}</span>}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </main>
+      <DataTableShell>
+        {deliveries.length === 0 ? (
+          <p className="p-6 text-center text-sm text-muted-foreground">No messages match this filter.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Recipient</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="hidden sm:table-cell">Detail</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {deliveries.map((d) => (
+                <TableRow key={d.id}>
+                  <TableCell className="max-w-64 truncate">{d.recipient_email}</TableCell>
+                  <TableCell><StatusBadge status={d.status} label={STATUS_LABEL[d.status] ?? d.status} /></TableCell>
+                  <TableCell className="hidden text-xs whitespace-normal text-muted-foreground sm:table-cell">{d.last_error ?? "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </DataTableShell>
+    </div>
   );
 }

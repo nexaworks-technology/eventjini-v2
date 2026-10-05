@@ -1,5 +1,5 @@
+import { PageHeader } from "@/components/eventjini/page-header";
 import { AgendaEditor, type AgendaItem } from "@/components/agenda-editor";
-import { EventNav } from "@/components/event-nav";
 import { ADMIN_ROLES, requireEventAccess } from "@/lib/event-access";
 import { formatEventWhen, utcToZoned } from "@/lib/time";
 
@@ -48,16 +48,14 @@ export default async function AgendaPage({ params }: { params: Promise<{ id: str
   });
 
   return (
-    <main className="mx-auto min-h-screen max-w-3xl space-y-6 px-4 py-10">
-      <EventNav eventId={id} eventTitle={event.title} role={role} active="agenda" />
-      <h2 className="text-xl font-semibold text-zinc-900">Agenda</h2>
-      <p className="text-xs text-zinc-500">Times shown in {event.timezone}.</p>
+    <div className="max-w-3xl space-y-6">
+      <PageHeader level={2} title={"Agenda"} description={<>Times shown in {event.timezone}.</>} />
       <AgendaEditor
         eventId={id}
         items={items}
         canEdit={ADMIN_ROLES.includes(role)}
         defaultDate={utcToZoned(event.start_at, event.timezone).date}
       />
-    </main>
+    </div>
   );
 }

@@ -5,7 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 import { SLUG_RE } from "@/lib/slug";
 import { validateEventValues, type EventFormValues, type FieldErrors } from "@/lib/events";
 
-export type SaveResult = { ok: false; error?: string; fieldErrors?: FieldErrors };
+export type SaveResult = { ok: true; eventId?: string } | { ok: false; error?: string; fieldErrors?: FieldErrors };
 
 export type SlugCheck = { state: "available" | "taken" | "invalid" | "error" };
 
@@ -34,8 +34,9 @@ const GENERIC_ERROR = "Could not save the event. Please try again.";
 
 export async function saveEvent(
   values: EventFormValues,
-  intent: "draft" | "publish" | "save",
-  eventId?: string
+  intent: "draft" | "publish" | "save" | "settings",
+  eventId?: string,
+  options?: { noRedirect?: boolean }
 ): Promise<SaveResult> {
   const supabase = await createClient();
   const {
@@ -97,6 +98,8 @@ export async function saveEvent(
     savedId = data.id;
   }
 
+  if (intent === "settings") return { ok: true };
+  if (options?.noRedirect) return { ok: true, eventId: savedId };
   redirect(`/dashboard/events/${savedId}${intent === "publish" ? "?published=1" : ""}`);
 }
 

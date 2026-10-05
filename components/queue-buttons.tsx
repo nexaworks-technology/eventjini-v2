@@ -1,5 +1,6 @@
 "use client";
 
+import { btnPrimary, btnSecondary } from "@/components/eventjini/classes";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { processQueueNow, retryFailed } from "@/app/dashboard/events/[id]/communications/actions";
@@ -33,17 +34,17 @@ export function QueueButtons({
     <div className="space-y-2">
       <div className="flex flex-wrap gap-3">
         {queued > 0 && (
-          <button type="button" disabled={pending} onClick={() => run(() => processQueueNow(eventId))} className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60">
+          <button type="button" disabled={pending} onClick={() => run(() => processQueueNow(eventId))} className={btnPrimary}>
             {pending ? "Working..." : `Send ${queued} queued message${queued === 1 ? "" : "s"} now`}
           </button>
         )}
         {failed > 0 && (
-          <button type="button" disabled={pending} onClick={() => run(() => retryFailed(eventId, broadcastId))} className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50 disabled:opacity-60">
+          <button type="button" disabled={pending} onClick={() => run(() => retryFailed(eventId, broadcastId))} className={btnSecondary}>
             Retry {failed} failed
           </button>
         )}
       </div>
-      {message && <p role="status" className="text-sm text-zinc-700">{message}</p>}
+      {message && <p role="status" className="text-sm text-foreground">{message}</p>}
     </div>
   );
 }

@@ -1,6 +1,6 @@
+import { PageHeader } from "@/components/eventjini/page-header";
 import Link from "next/link";
 import { BroadcastComposer } from "@/components/broadcast-composer";
-import { EventNav } from "@/components/event-nav";
 import { emailConfigured } from "@/lib/email/resend";
 import { ADMIN_ROLES, requireEventAccess } from "@/lib/event-access";
 
@@ -19,7 +19,7 @@ const SEGMENT_LABEL: Record<string, string> = { approved: "Approved", pending: "
 
 export default async function CommunicationsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, event, role } = await requireEventAccess(id, ADMIN_ROLES);
+  const { supabase } = await requireEventAccess(id, ADMIN_ROLES);
 
   const { data } = await supabase
     .from("event_broadcasts")
@@ -30,32 +30,31 @@ export default async function CommunicationsPage({ params }: { params: Promise<{
   const broadcasts = (data ?? []) as Broadcast[];
 
   return (
-    <main className="mx-auto min-h-screen max-w-3xl space-y-6 px-4 py-10">
-      <EventNav eventId={id} eventTitle={event.title} role={role} active="communications" />
-      <h2 className="text-xl font-semibold text-zinc-900">Communications</h2>
+    <div className="max-w-3xl space-y-6">
+      <PageHeader level={2} title={"Communications"} />
 
       <BroadcastComposer eventId={id} configured={emailConfigured()} />
 
       <section className="space-y-3">
-        <h3 className="font-semibold text-zinc-900">Broadcasts</h3>
-        {broadcasts.length === 0 && <div className="rounded-xl bg-white p-6 text-center text-zinc-600 shadow-sm">No broadcasts yet.</div>}
+        <h3 className="font-semibold text-foreground">Broadcasts</h3>
+        {broadcasts.length === 0 && <div className="rounded-xl bg-card p-6 text-center text-muted-foreground shadow-sm">No broadcasts yet.</div>}
         <ul className="space-y-3">
           {broadcasts.map((b) => (
-            <li key={b.id} className="rounded-xl bg-white p-4 shadow-sm">
-              <Link href={`/dashboard/events/${id}/communications/${b.id}`} className="font-medium text-zinc-900 hover:underline">
+            <li key={b.id} className="rounded-xl bg-card p-4 shadow-sm">
+              <Link href={`/dashboard/events/${id}/communications/${b.id}`} className="font-medium text-foreground hover:underline">
                 {b.subject}
               </Link>
-              <p className="text-sm text-zinc-600">
+              <p className="text-sm text-muted-foreground">
                 {SEGMENT_LABEL[b.segment] ?? b.segment} · {b.recipient_count} recipient{b.recipient_count === 1 ? "" : "s"} ·{" "}
                 <span className="capitalize">{b.status.replace("_", " ")}</span>
               </p>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-muted-foreground">
                 {b.sent_at ? `Sent ${new Date(b.sent_at).toISOString().replace("T", " ").slice(0, 16)} UTC` : `Queued ${new Date(b.queued_at ?? b.created_at).toISOString().replace("T", " ").slice(0, 16)} UTC`}
               </p>
             </li>
           ))}
         </ul>
       </section>
-    </main>
+    </div>
   );
 }

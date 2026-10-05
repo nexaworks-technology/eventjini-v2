@@ -48,8 +48,8 @@ export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
 
 export const STATUS_LABELS: Record<RegistrationStatus, string> = {
   pending: "Pending approval",
-  approved: "Ticket confirmed",
-  rejected: "Not approved",
+  approved: "Confirmed",
+  rejected: "Rejected",
   checked_in: "Checked in",
   cancelled: "Cancelled",
 };

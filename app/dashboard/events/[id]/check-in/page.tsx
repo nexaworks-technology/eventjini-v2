@@ -1,16 +1,19 @@
+import { PageHeader } from "@/components/eventjini/page-header";
+import { InstallButton } from "@/components/install-button";
 import { CheckInScanner } from "@/components/checkin-scanner";
-import { EventNav } from "@/components/event-nav";
 import { CHECKIN_ROLES, requireEventAccess } from "@/lib/event-access";
 
 export default async function CheckInPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { event, role } = await requireEventAccess(id, CHECKIN_ROLES);
+  const {  } = await requireEventAccess(id, CHECKIN_ROLES);
 
   return (
-    <main className="mx-auto min-h-screen max-w-xl space-y-6 px-4 py-10">
-      <EventNav eventId={id} eventTitle={event.title} role={role} active="check-in" />
-      <h2 className="text-xl font-semibold text-zinc-900">Check in guests</h2>
+    <div className="max-w-xl space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <PageHeader level={2} title={"Check in guests"} />
+        <InstallButton label="Install scanner" />
+      </div>
       <CheckInScanner eventId={id} />
-    </main>
+    </div>
   );
 }
