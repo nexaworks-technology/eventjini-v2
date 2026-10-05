@@ -445,3 +445,24 @@ Status: In progress (usage limit reached mid-verification). No schema, RLS, RPC,
 
 ### Not yet verified
 - Full guest registration → ticket → check-in flow in the new UI; scanner-role navigation; mobile shell Sheet; light-mode contrast sweep; keyboard pass on dialogs; P3/P4/P5 regression suites re-run (backend untouched, but not re-run)
+
+## Email templates (post-P7)
+
+- `lib/email/layout.ts`: branded, table-based HTML (event colour, cover image, When/Where panel, CTA button, footer) used by the worker and the live preview.
+- `lib/email/templates.ts`: 7 starter templates (approval, 24h reminder, event day, announcement, schedule change, last call, thank you), picked from a dropdown in Communications and Automations.
+- Migration `20261005090000_email_branding_context.sql` adds slug/colour/cover to `claim_email_deliveries` (must be applied; emails still send without it, just unbranded).
+- Verified: preview renders in the composer. Not yet verified: real inbox rendering (Gmail/Outlook/Apple Mail), sending from a verified domain.
+
+## Unsubscribe (post-P7)
+
+- Migration `20261005100000_email_unsubscribe.sql`: `registration_email_prefs` (token + opt-out, RLS on, no policies), trigger + backfill, `unsubscribe_preview` / `set_email_opt_out` (anon-callable by unguessable token), broadcasts and recipient counts skip opted-out registrations, claim function returns `is_broadcast` + token.
+- `/unsubscribe/[token]` (confirm button, resubscribe), `POST /api/unsubscribe/[token]` (RFC 8058 one-click). GET never changes state.
+- Broadcast emails get a footer link, a plain-text link, and `List-Unsubscribe` + `List-Unsubscribe-Post` headers. Approval/reminder automations are transactional and unaffected.
+- Verified: typecheck/lint, composer preview. NOT verified end to end until the migration is applied: opt-out, exclusion from a broadcast, resubscribe, one-click POST, headers arriving in a real inbox.
+
+## Marketing home redesign (post-P7)
+
+- `app/page.tsx` rebuilt to the supplied mockup: hero + dashboard mock, organizer pain points, registration / check-in / sponsor feature rows, 3-step how-it-works, dark pilot band, FAQ, slim footer. Nav: Product, Pilot program, FAQ.
+- Orange brand is scoped to a `.landing` wrapper in globals.css; the app and event pages keep their own themes. Product visuals are markup-built mocks with sample data (no stock photos).
+- FAQ copy matches current behaviour (scanner needs a connection; custom fields; data ownership).
+- Verified: desktop and 375px render, no horizontal overflow. Not verified: dark mode on the landing, full keyboard/contrast pass.

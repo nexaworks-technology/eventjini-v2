@@ -3,7 +3,8 @@ import { createHash } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { emailConfigured, fromAddress, getResend } from "@/lib/email/resend";
 import { formatEventWhen } from "@/lib/time";
-import { renderHtml, renderTemplate } from "@/lib/email/template";
+import { renderEmailHtml } from "@/lib/email/layout";
+import { renderTemplate } from "@/lib/email/template";
 
 type Claimed = {
   id: string;
@@ -16,6 +17,11 @@ type Claimed = {
   event_end_at: string;
   event_timezone: string;
   event_location: string | null;
+  event_slug?: string;
+  event_primary_color?: string | null;
+  event_cover_image_url?: string | null;
+  is_broadcast?: boolean;
+  unsubscribe_token?: string | null;
 };
 
 export type QueueResult =
@@ -23,6 +29,13 @@ export type QueueResult =
   | { ok: false; reason: "not_configured" | "error" };
 
 const CHUNK = 50;
+
+function siteUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_SITE_URL;
+  if (explicit) return explicit.replace(/\/$/, "");
+  const prod = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  return prod ? `https://${prod}` : "http://localhost:3000";
+}
 
 function safeMessage(e: unknown): string {
   const m = e instanceof Error ? e.message : typeof e === "string" ? e : "Unknown error";
@@ -54,12 +67,27 @@ export async function processEmailQueue(limit = 50): Promise<QueueResult> {
         event_location: r.event_location ?? "",
       };
       const text = renderTemplate(r.body_text, vars);
+      const unsubscribeUrl = r.is_broadcast && r.unsubscribe_token ? `${siteUrl()}/unsubscribe/${r.unsubscribe_token}` : null;
       return {
         from,
         to: [r.recipient_email],
         subject: renderTemplate(r.subject, vars),
-        text,
-        html: renderHtml(text, r.event_title),
+        text: unsubscribeUrl ? `${text}\n\n--\nUnsubscribe: ${unsubscribeUrl}` : text,
+        headers: unsubscribeUrl
+          ? {
+              "List-Unsubscribe": `<${siteUrl()}/api/unsubscribe/${r.unsubscribe_token}>`,
+              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+            }
+          : undefined,
+        html: renderEmailHtml(text, {
+          eventTitle: r.event_title,
+          primaryColor: r.event_primary_color,
+          coverImageUrl: r.event_cover_image_url,
+          eventUrl: r.event_slug ? `${siteUrl()}/e/${r.event_slug}` : null,
+          when: `${when.date}, ${when.time} (${r.event_timezone})`,
+          where: r.event_location ?? "",
+          unsubscribeUrl,
+        }),
       };
     });
 

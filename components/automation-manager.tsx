@@ -2,6 +2,9 @@
 
 import { useConfirm } from "@/components/eventjini/confirm-dialog";
 import { btnPrimary, btnSecondarySm, inputCls } from "@/components/eventjini/classes";
+import { EmailPreview } from "@/components/email-preview";
+import { TemplatePicker } from "@/components/template-picker";
+import type { EmailBrand } from "@/lib/email/layout";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
@@ -28,7 +31,7 @@ const TRIGGER_LABEL: Record<TriggerType, string> = {
 };
 const EMPTY: AutomationInput = { name: "", trigger: "registration_approved", subject: "", body: "", enabled: false };
 
-export function AutomationManager({ eventId, items }: { eventId: string; items: AutomationItem[] }) {
+export function AutomationManager({ eventId, items, brand }: { eventId: string; items: AutomationItem[]; brand: EmailBrand }) {
   const confirm = useConfirm();
   const router = useRouter();
   const [editing, setEditing] = useState<string | "new" | null>(null);
@@ -57,9 +60,11 @@ export function AutomationManager({ eventId, items }: { eventId: string; items: 
         </select>
       </label>
       <p className="text-xs text-muted-foreground">Action: Send email</p>
+      <TemplatePicker use={form.trigger} onPick={(t) => setForm({ ...form, name: form.name || t.name, subject: t.subject, body: t.body })} />
       <input className={inputCls} aria-label="Subject" placeholder="Subject, e.g. You're approved for {{event_title}}" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
       <textarea className={inputCls} rows={6} aria-label="Message" placeholder={"Hi {{first_name}},\n\n..."} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} />
       <p className="text-xs text-muted-foreground">Variables: {"{{first_name}}"}, {"{{event_title}}"}, {"{{event_date}}"}, {"{{event_location}}"}</p>
+      <EmailPreview body={form.body} brand={brand} />
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={form.enabled} onChange={(e) => setForm({ ...form, enabled: e.target.checked })} />
         Enable automation (emails start sending as soon as it is saved enabled)

@@ -1,3 +1,4 @@
+import { previewBrand } from "@/lib/email/preview-brand";
 import { PageHeader } from "@/components/eventjini/page-header";
 import { AutomationManager, type AutomationItem } from "@/components/automation-manager";
 import { ADMIN_ROLES, requireEventAccess } from "@/lib/event-access";
@@ -14,7 +15,7 @@ type RunRow = {
 
 export default async function AutomationsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase } = await requireEventAccess(id, ADMIN_ROLES);
+  const { supabase, event } = await requireEventAccess(id, ADMIN_ROLES);
 
   const [{ data: automations }, { data: runRows }] = await Promise.all([
     supabase.from("event_automations").select("id,name,trigger_type,subject,body_text,enabled").eq("event_id", id).order("created_at"),
@@ -45,7 +46,7 @@ export default async function AutomationsPage({ params }: { params: Promise<{ id
   return (
     <div className="max-w-3xl space-y-6">
       <PageHeader level={2} title={"Automations"} />
-      <AutomationManager eventId={id} items={items} />
+      <AutomationManager eventId={id} items={items} brand={previewBrand(event)} />
     </div>
   );
 }

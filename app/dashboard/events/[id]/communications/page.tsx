@@ -1,3 +1,4 @@
+import { previewBrand } from "@/lib/email/preview-brand";
 import { PageHeader } from "@/components/eventjini/page-header";
 import Link from "next/link";
 import { BroadcastComposer } from "@/components/broadcast-composer";
@@ -19,7 +20,7 @@ const SEGMENT_LABEL: Record<string, string> = { approved: "Approved", pending: "
 
 export default async function CommunicationsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase } = await requireEventAccess(id, ADMIN_ROLES);
+  const { supabase, event } = await requireEventAccess(id, ADMIN_ROLES);
 
   const { data } = await supabase
     .from("event_broadcasts")
@@ -33,7 +34,7 @@ export default async function CommunicationsPage({ params }: { params: Promise<{
     <div className="max-w-3xl space-y-6">
       <PageHeader level={2} title={"Communications"} />
 
-      <BroadcastComposer eventId={id} configured={emailConfigured()} />
+      <BroadcastComposer eventId={id} configured={emailConfigured()} brand={previewBrand(event)} />
 
       <section className="space-y-3">
         <h3 className="font-semibold text-foreground">Broadcasts</h3>

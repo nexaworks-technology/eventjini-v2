@@ -2,6 +2,9 @@
 
 import { useConfirm } from "@/components/eventjini/confirm-dialog";
 import { btnPrimary, inputCls } from "@/components/eventjini/classes";
+import { EmailPreview } from "@/components/email-preview";
+import { TemplatePicker } from "@/components/template-picker";
+import type { EmailBrand } from "@/lib/email/layout";
 import { useEffect, useState, useTransition } from "react";
 import { countRecipients, sendBroadcast, type Segment } from "@/app/dashboard/events/[id]/communications/actions";
 
@@ -12,7 +15,7 @@ const SEGMENTS: { value: Segment; label: string }[] = [
   { value: "checked_in", label: "Checked-in attendees" },
 ];
 
-export function BroadcastComposer({ eventId, configured }: { eventId: string; configured: boolean }) {
+export function BroadcastComposer({ eventId, configured, brand }: { eventId: string; configured: boolean; brand: EmailBrand }) {
   const [segment, setSegment] = useState<Segment>("approved");
   const [count, setCount] = useState<number | null>(null);
   const confirm = useConfirm();
@@ -72,6 +75,8 @@ export function BroadcastComposer({ eventId, configured }: { eventId: string; co
         </span>
       </label>
 
+      <TemplatePicker use="broadcast" onPick={(t) => { setSubject(t.subject); setBody(t.body); }} />
+
       <label className="block space-y-1 text-sm font-medium text-foreground">
         Subject
         <input className={inputCls} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Tomorrow: {{event_title}}" />
@@ -87,9 +92,11 @@ export function BroadcastComposer({ eventId, configured }: { eventId: string; co
           placeholder={"Hi {{first_name}},\n\n{{event_title}} is on {{event_date}} at {{event_location}}.\n\nSee you there."}
         />
         <span className="block text-xs font-normal text-muted-foreground">
-          Variables: {"{{first_name}}"}, {"{{event_title}}"}, {"{{event_date}}"}, {"{{event_location}}"}. Plain text only.
+          Variables: {"{{first_name}}"}, {"{{event_title}}"}, {"{{event_date}}"}, {"{{event_location}}"}. Write plain text; we wrap it in a branded layout with your event colors, cover image, details and a button.
         </span>
       </label>
+
+      <EmailPreview body={body} brand={{ ...brand, unsubscribeUrl: "#" }} />
 
       {error && (
         <p role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">

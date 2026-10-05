@@ -179,3 +179,29 @@
 .event-cta-inverse:hover {
   filter: brightness(0.96);
 }
+
+/* Marketing home only: warm orange brand on a neutral surface. Never applied to the app or event pages. */
+.landing {
+  --primary: oklch(0.56 0.18 40);
+  --primary-foreground: oklch(0.99 0 0);
+  --ring: oklch(0.56 0.18 40);
+  --background: oklch(0.995 0 0);
+  --foreground: oklch(0.16 0 0);
+  --muted: oklch(0.97 0.003 60);
+  --muted-foreground: oklch(0.46 0.01 60);
+  --border: oklch(0.92 0.004 60);
+  --accent: oklch(0.96 0.02 55);
+  --accent-foreground: oklch(0.35 0.1 40);
+}
+.dark .landing {
+  --primary: oklch(0.72 0.16 50);
+  --primary-foreground: oklch(0.16 0.02 50);
+  --ring: oklch(0.72 0.16 50);
+  --background: oklch(0.15 0 0);
+  --foreground: oklch(0.97 0 0);
+  --muted: oklch(0.2 0.003 60);
+  --muted-foreground: oklch(0.72 0.01 60);
+  --border: oklch(0.28 0.004 60);
+  --accent: oklch(0.26 0.03 50);
+  --accent-foreground: oklch(0.95 0.02 50);
+}
