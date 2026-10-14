@@ -21,12 +21,12 @@ export function AgendaEditor({
   eventId,
   items,
   canEdit,
-  defaultDate,
+  days,
 }: {
   eventId: string;
   items: AgendaItem[];
   canEdit: boolean;
-  defaultDate: string;
+  days: { date: string; label: string }[];
 }) {
   const confirm = useConfirm();
   const router = useRouter();
@@ -71,15 +71,19 @@ export function AgendaEditor({
   const formUi = form && (
     <div className="space-y-3 rounded-md border border-border bg-muted/40 p-4">
       <input className={inputCls} aria-label="Session title" placeholder="Title *" value={form.title} onChange={(e) => set("title", e.target.value)} />
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="space-y-1 text-xs text-muted-foreground">Start date *
-          <input type="date" className={inputCls} value={form.startDate} onChange={(e) => set("startDate", e.target.value)} />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <label className="space-y-1 text-xs text-muted-foreground">Day *
+          {days.length > 1 ? (
+            <select className={inputCls} value={form.startDate} onChange={(e) => setForm((f) => (f ? { ...f, startDate: e.target.value, endDate: e.target.value } : f))}>
+              {!days.some((d) => d.date === form.startDate) && <option value={form.startDate}>{form.startDate}</option>}
+              {days.map((d) => <option key={d.date} value={d.date}>{d.label}</option>)}
+            </select>
+          ) : (
+            <span className="flex h-9 items-center text-sm text-foreground">{days[0]?.label}</span>
+          )}
         </label>
         <label className="space-y-1 text-xs text-muted-foreground">Start time *
           <input type="time" className={inputCls} value={form.startTime} onChange={(e) => set("startTime", e.target.value)} />
-        </label>
-        <label className="space-y-1 text-xs text-muted-foreground">End date *
-          <input type="date" className={inputCls} value={form.endDate} onChange={(e) => set("endDate", e.target.value)} />
         </label>
         <label className="space-y-1 text-xs text-muted-foreground">End time *
           <input type="time" className={inputCls} value={form.endTime} onChange={(e) => set("endTime", e.target.value)} />
@@ -141,7 +145,11 @@ export function AgendaEditor({
       {canEdit && editing !== "new" && (
         <button
           type="button"
-          onClick={() => open("new", { title: "", description: "", speaker: "", startDate: defaultDate, startTime: "", endDate: defaultDate, endTime: "" })}
+          onClick={() => {
+            const last = items.at(-1)?.form.startDate;
+            const date = last && days.some((d) => d.date === last) ? last : days[0]?.date ?? "";
+            open("new", { title: "", description: "", speaker: "", startDate: date, startTime: "", endDate: date, endTime: "" });
+          }}
           className={btnSecondarySm}
         >
           + Add session

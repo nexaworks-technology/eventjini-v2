@@ -25,6 +25,7 @@ import { formatEventWhen, zonedToUtc } from "@/lib/time";
 const STEPS = ["Basics", "Date & Time", "Settings", "Review"];
 const COVER_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const COVER_MAX_BYTES = 5 * 1024 * 1024;
+const COVER_REQUIRED = "Add a cover image. It is the first thing delegates see on your event page.";
 
 type Props = {
   mode: "create" | "edit";
@@ -104,6 +105,7 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
   }, [values.slug, eventId]);
 
   const imageOk = failedImage !== values.coverImageUrl.trim();
+  const hasCover = !!coverFile || !!values.coverImageUrl.trim();
 
   function update<K extends keyof EventFormValues>(key: K, value: EventFormValues[K]) {
     if (key === "timezone") setTzChoice(value as string);
@@ -129,9 +131,10 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
     if (step === 0 && normalized !== values.slug) setValues((v) => ({ ...v, slug: normalized }));
 
     const found = stepErrors(step);
+    if (step === 0 && !hasCover) found.coverImageUrl = COVER_REQUIRED;
     if (step === 0 && !found.slug && normalized) {
       const result = await checkSlugAvailability(normalized, eventId);
-      if (result.state === "taken") found.slug = "That event URL is already in use. Choose another slug.";
+      if (result.state === "taken") found.slug = "That event page link is already in use. Choose another one.";
     }
     setErrors(found);
     if (Object.keys(found).length > 0) return;
@@ -141,6 +144,7 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
   function submit(intent: "draft" | "publish" | "save") {
     setFormError(null);
     const { errors: all } = validateEventValues(values);
+    if (!hasCover) all.coverImageUrl = COVER_REQUIRED;
     if (Object.keys(all).length > 0) {
       setErrors(all);
       const first = STEP_FIELDS.findIndex((fields) => fields.some((f) => all[f]));
@@ -211,7 +215,7 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
               />
             </Field>
 
-            <Field label="Slug" error={errors.slug}>
+            <Field label="Event page link" error={errors.slug}>
               <input
                 className={inputCls}
                 value={values.slug}
@@ -222,7 +226,7 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
                 onBlur={() => update("slug", slugify(values.slug))}
               />
               <span className="block text-xs text-muted-foreground">
-                eventjini.com/e/{values.slug || "your-event"}
+                The web address delegates use to open your event: eventjini.com/e/{values.slug || "your-event"}
               </span>
               {slugState === "checking" && <span className="block text-xs text-muted-foreground">Checking availability...</span>}
               {slugState === "available" && (
@@ -248,7 +252,7 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
             </Field>
 
             <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">Cover image (optional)</p>
+              <p className="text-sm font-medium text-foreground">Cover image</p>
               <input
                 ref={fileRef}
                 type="file"
@@ -266,6 +270,7 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
                   setCoverFile(f);
                   setCoverPreview(URL.createObjectURL(f));
                   update("coverImageUrl", "");
+                  setErrors((er) => ({ ...er, coverImageUrl: undefined }));
                 }}
               />
               <div className="flex flex-wrap items-center gap-2">
@@ -318,7 +323,7 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
               )
             )}
 
-            <Field label="Location (optional)">
+            <Field label="Location" error={errors.location} hint="Venue not decided yet? Enter TBD and update it later.">
               <input
                 className={inputCls}
                 value={values.location}
@@ -403,6 +408,11 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
         {step === 3 && (
           <div className="space-y-5">
             <h2 className="text-lg font-semibold text-foreground">Review your event</h2>
+            {mode === "create" && (
+              <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+                Your event will be saved as a draft that only you and your team can see. Add registration questions, the agenda and sponsors, then publish it from the event overview when you&apos;re ready.
+              </p>
+            )}
 
             <Section title="Basics" onEdit={() => setStep(0)}>
               {coverPreview ? (
@@ -481,24 +491,14 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
             Continue to {STEPS[step + 1]} →
           </button>
         ) : mode === "create" ? (
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => submit("draft")}
-              disabled={pending}
-              className={btnSecondary}
-            >
-              {pending ? "Saving..." : "Save as draft"}
-            </button>
-            <button
-              type="button"
-              onClick={() => submit("publish")}
-              disabled={pending}
-              className={btnPrimary}
-            >
-              Publish event
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => submit("draft")}
+            disabled={pending}
+            className={btnPrimary}
+          >
+            {pending ? "Creating..." : "Create event"}
+          </button>
         ) : (
           <div className="flex gap-2">
             <button

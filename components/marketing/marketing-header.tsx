@@ -10,8 +10,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { cn } from "@/lib/utils";
 
 const LINKS = [
-  { href: "#product", label: "Product" },
-  { href: "#pilot", label: "Pilot program" },
+  { href: "#solutions", label: "Who it's for" },
+  { href: "#features", label: "Features" },
   { href: "#faq", label: "FAQ" },
 ];
 
@@ -29,11 +29,11 @@ export function MarketingHeader({ signedIn }: { signedIn: boolean }) {
         <div className="ml-auto hidden items-center gap-2 md:flex">
           <ThemeToggle />
           {signedIn ? (
-            <Link href="/dashboard" className={buttonVariants({ size: "lg", className: "h-9 px-4" })}>Open dashboard</Link>
+            <Link href="/dashboard" className={buttonVariants({ size: "lg", className: "h-9 px-4" })}>My events</Link>
           ) : (
             <>
               <Link href="/login" className={buttonVariants({ variant: "ghost", size: "lg", className: "h-9 px-3" })}>Sign in</Link>
-              <Link href="/register" className={buttonVariants({ size: "lg", className: "h-9 px-4" })}>Start free pilot</Link>
+              <Link href="/register" className={buttonVariants({ size: "lg", className: "h-9 px-4" })}>Get started</Link>
             </>
           )}
         </div>
@@ -54,10 +54,10 @@ export function MarketingHeader({ signedIn }: { signedIn: boolean }) {
               </nav>
               <div className="flex flex-col gap-2 border-t p-3">
                 {signedIn ? (
-                  <Link href="/dashboard" className={cn(buttonVariants({ size: "lg" }), "h-11")}>Open dashboard</Link>
+                  <Link href="/dashboard" className={cn(buttonVariants({ size: "lg" }), "h-11")}>My events</Link>
                 ) : (
                   <>
-                    <Link href="/register" className={cn(buttonVariants({ size: "lg" }), "h-11")}>Start free pilot</Link>
+                    <Link href="/register" className={cn(buttonVariants({ size: "lg" }), "h-11")}>Get started</Link>
                     <Link href="/login" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-11")}>Sign in</Link>
                   </>
                 )}

@@ -20,7 +20,7 @@ export default async function NewEventPage() {
         <Link href="/dashboard/events" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="size-3.5" aria-hidden /> Events
         </Link>
-        <PageHeader title="Create event" description="Four short steps: basics, date and time, settings, and a final review." />
+        <PageHeader title="Create event" description="Four short steps: basics, date and time, settings, and a review. Your event is saved as a draft, so nothing goes public until you publish it." />
       </div>
       <EventWizard mode="create" initialValues={emptyFormValues()} timezones={getTimezones()} />
     </div>

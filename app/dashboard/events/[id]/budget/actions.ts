@@ -14,10 +14,10 @@ type Validated =
 function validate(i: BudgetInput): Validated {
   const name = i.name.trim();
   const category = i.category.trim();
-  if (!name) return { error: "Item name is required.", field: "name" };
-  if (name.length > 200) return { error: "Item name must be 200 characters or fewer.", field: "name" };
   if (!category) return { error: "Category is required.", field: "category" };
   if (category.length > 80) return { error: "Category must be 80 characters or fewer.", field: "category" };
+  if (!name) return { error: "Item name is required.", field: "name" };
+  if (name.length > 200) return { error: "Item name must be 200 characters or fewer.", field: "name" };
   const estimated = parseAmount(i.estimated);
   if (estimated === null) return { error: "Estimated cost must be a positive number (up to two decimals).", field: "estimated" };
   const actual = parseAmount(i.actual);

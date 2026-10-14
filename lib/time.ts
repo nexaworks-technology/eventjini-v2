@@ -117,3 +117,19 @@ export function formatShortDate(iso: string, tz: string): string {
     day: "numeric",
   }).format(new Date(iso));
 }
+
+/** Each calendar day (in `tz`) the event touches, e.g. [{ date: "2027-03-04", label: "Thursday, March 4" }]. */
+export function eventDays(startIso: string, endIso: string, tz: string): { date: string; label: string }[] {
+  const first = utcToZoned(startIso, tz).date;
+  const last = utcToZoned(endIso, tz).date;
+  const fmt = new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "long", month: "long", day: "numeric" });
+  const days: { date: string; label: string }[] = [];
+  const [y, m, d] = first.split("-").map(Number);
+  for (let i = 0; i < 60; i++) {
+    const day = new Date(Date.UTC(y, m - 1, d + i));
+    const date = day.toISOString().slice(0, 10);
+    if (date > last) break;
+    days.push({ date, label: fmt.format(day) });
+  }
+  return days;
+}

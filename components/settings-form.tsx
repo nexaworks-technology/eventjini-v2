@@ -111,11 +111,12 @@ export function SettingsForm({
     <div className="space-y-6">
       <Section title="Event details">
         <label className="block space-y-1 text-sm font-medium text-foreground">Title *<input className={inputCls} value={v.title} onChange={(e) => set("title", e.target.value)} />{err("title")}</label>
-        <label className="block space-y-1 text-sm font-medium text-foreground">Slug *
+        <label className="block space-y-1 text-sm font-medium text-foreground">Event page link *
           <input className={inputCls} value={v.slug} onChange={(e) => { set("slug", e.target.value.toLowerCase()); setSlugHint(null); }} onBlur={async () => {
             const n = slugify(v.slug); set("slug", n);
-            if (n && n !== initial.slug) { const r = await checkSlugAvailability(n, eventId); setSlugHint(r.state === "taken" ? "✕ That slug is already taken" : r.state === "available" ? "✓ Available" : null); } else setSlugHint(null);
+            if (n && n !== initial.slug) { const r = await checkSlugAvailability(n, eventId); setSlugHint(r.state === "taken" ? "✕ That link is already taken" : r.state === "available" ? "✓ Available" : null); } else setSlugHint(null);
           }} />
+          <span className="block text-xs font-normal text-muted-foreground">The web address delegates use to open your event: eventjini.com/e/{v.slug || "your-event"}</span>
           {slugHint && <span className="block text-xs text-muted-foreground">{slugHint}</span>}{err("slug")}
         </label>
         <label className="block space-y-1 text-sm font-medium text-foreground">Description<textarea className={inputCls} rows={4} value={v.description} onChange={(e) => set("description", e.target.value)} /></label>
@@ -131,7 +132,7 @@ export function SettingsForm({
         <label className="block space-y-1 text-sm font-medium text-foreground">Timezone
           <select className={inputCls} value={v.timezone} onChange={(e) => set("timezone", e.target.value)}>{zones.map((z) => <option key={z} value={z}>{z}</option>)}</select>{err("timezone")}
         </label>
-        <label className="block space-y-1 text-sm font-medium text-foreground">Location<input className={inputCls} value={v.location} onChange={(e) => set("location", e.target.value)} /></label>
+        <label className="block space-y-1 text-sm font-medium text-foreground">Location *<input className={inputCls} value={v.location} onChange={(e) => set("location", e.target.value)} placeholder="Venue name and city, or TBD" />{err("location")}</label>
 
         <h3 className="pt-2 text-sm font-semibold text-foreground">Registration settings</h3>
         <label className="block space-y-1 text-sm font-medium text-foreground">Capacity<input className={inputCls} inputMode="numeric" value={v.capacity} onChange={(e) => set("capacity", e.target.value)} />{err("capacity")}</label>

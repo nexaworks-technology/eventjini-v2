@@ -55,7 +55,7 @@ export type FieldName = keyof EventFormValues | "range";
 export type FieldErrors = Partial<Record<FieldName, string>>;
 
 export const STEP_FIELDS: FieldName[][] = [
-  ["title", "slug", "coverImageUrl"],
+  ["title", "slug", "coverImageUrl", "location"],
   ["startDate", "startTime", "endDate", "endTime", "timezone", "range"],
   ["capacity"],
   [],
@@ -73,9 +73,11 @@ export function validateEventValues(v: EventFormValues): {
 
   if (!v.title.trim()) errors.title = "Event title is required.";
 
-  if (!v.slug) errors.slug = "Slug is required.";
+  if (!v.slug) errors.slug = "Event page link is required.";
   else if (!SLUG_RE.test(v.slug))
     errors.slug = "Use lowercase letters, numbers and single hyphens only.";
+
+  if (!v.location.trim()) errors.location = "Location is required. If the venue isn't decided yet, enter TBD.";
 
   if (v.coverImageUrl.trim()) {
     try {

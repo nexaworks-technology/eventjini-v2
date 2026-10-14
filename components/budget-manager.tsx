@@ -48,17 +48,17 @@ export function BudgetManager({ eventId, items, currency, canEdit }: { eventId: 
   const formUi = (
     <div className="space-y-3 rounded-md border border-border bg-muted/40 p-4">
       <label className="block space-y-1 text-sm font-medium text-foreground">
-        Item name *
-        <input className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        {fieldErr("name")}
-      </label>
-      <label className="block space-y-1 text-sm font-medium text-foreground">
         Category *
-        <input className={inputCls} list="budget-categories" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+        <input className={inputCls} list="budget-categories" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Venue, Catering, Marketing..." />
         <datalist id="budget-categories">
           {SUGGESTIONS.map((s) => <option key={s} value={s} />)}
         </datalist>
         {fieldErr("category")}
+      </label>
+      <label className="block space-y-1 text-sm font-medium text-foreground">
+        Item name *
+        <input className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+        {fieldErr("name")}
       </label>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block space-y-1 text-sm font-medium text-foreground">

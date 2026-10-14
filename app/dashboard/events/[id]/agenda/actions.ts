@@ -2,7 +2,7 @@
 
 import { ADMIN_ROLES, authorizeAction } from "@/lib/event-access";
 import { UUID_RE } from "@/lib/registration";
-import { zonedToUtc } from "@/lib/time";
+import { formatEventWhen, zonedToUtc } from "@/lib/time";
 
 export type SessionInput = {
   title: string;
@@ -43,6 +43,10 @@ export async function saveSession(
   const end = zonedToUtc(input.endDate, input.endTime, event.timezone);
   if (!start || !end) return { ok: false, error: "Enter a valid start and end time." };
   if (end <= start) return { ok: false, error: "End time must be after the session start time." };
+  if (start < new Date(event.start_at) || end > new Date(event.end_at)) {
+    const w = formatEventWhen(event.start_at, event.end_at, event.timezone);
+    return { ok: false, error: `Sessions must fall within the event's dates and times (${w.date}, ${w.time}).` };
+  }
 
   const row = {
     title,
@@ -57,11 +61,7 @@ export async function saveSession(
     : await auth.supabase.from("event_sessions").insert({ ...row, event_id: eventId }).select("id").maybeSingle();
 
   if (error || !data) return { ok: false, error: "Could not save the session. Please try again." };
-
-  const outside = end <= new Date(event.start_at) || start >= new Date(event.end_at);
-  return outside
-    ? { ok: true, warning: "Saved, but this session falls completely outside the event's start and end time." }
-    : { ok: true };
+  return { ok: true };
 }
 
 export async function deleteSession(eventId: string, sessionId: string): Promise<SessionResult> {

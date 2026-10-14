@@ -478,3 +478,15 @@ Status: In progress (usage limit reached mid-verification). No schema, RLS, RPC,
 - Automated text-contrast audit (WCAG AA, computed colours) over home, public event, registration form, dashboard, overview, guests, registration, communications, automations, budget, team, settings, check-in, new-event wizard: light mode clean after darkening `--primary` and `--success` and the active nav/badge text; dark mode clean on the pages checked (home, public event, dashboard, communications, check-in, settings).
 - Not covered: text over images/gradients, icon-only controls, ticket page, sponsor portal, scanner in active scan state.
 - Unsubscribe e2e: PASSED against the live DB (RLS lock-down, preview, GET-safe page, one-click POST, opt-out recorded, count drops, opted-out registration excluded from queue_broadcast, resubscribe). Not covered: claim output in a real send, headers in a real inbox.
+
+## Feedback round 1 (2026-10-15)
+
+- Homepage rewritten: pain points, "who it's for" (organizers, delegates, sponsors, partners), feature grid, FAQ grouped into four collapsible sections. Pilot / free messaging and the word "dashboard" removed from marketing copy.
+- Create event: "Slug" renamed "Event page link" with an explanation; cover image and location are required (TBD allowed); creating saves a draft only, and publishing happens from the event overview (draft notice added there).
+- Delegate registration: stricter email format, common-typo hints (gmial.com → gmail.com), server-side DNS check that the domain exists (fails open on DNS trouble); mobile number has a country-code picker and per-country digit length (+91: exactly 10 digits, starting 6–9).
+- Agenda: sessions outside the event's start/end are rejected; the editor picks a Day (Day 1, Day 2...) plus start/end times; agenda is grouped by day on the dashboard, overview and public page.
+- Budget: Category now above Item name.
+- Vendors: contact email and phone required (same validation as registration); new City / location field.
+- Migration `20261015000000_vendor_city.sql` must be applied before the Vendors page works (it selects and writes `city`).
+- Verified: typecheck, lint, production build, homepage render, registration form validation in the browser, email/phone/eventDays helpers by script. NOT verified in the browser (needs a signed-in organizer): create-event wizard, agenda editor, budget and vendor forms.
+- Not done: Tasks page (waiting for separate feedback).

@@ -8,14 +8,15 @@ import { btnPrimary, btnSecondary, inputCls } from "@/components/eventjini/class
 import { EmptyState } from "@/components/eventjini/empty-state";
 import { StatusBadge } from "@/components/eventjini/status-badge";
 import { formatMoney, toCents } from "@/lib/money";
+import { COUNTRY_CODES, DEFAULT_COUNTRY_CODE, joinPhone, splitPhone } from "@/lib/phone";
 
 export type Vendor = {
-  id: string; name: string; category: string; contact_name: string | null; contact_email: string | null;
+  id: string; name: string; category: string; city: string | null; contact_name: string | null; contact_email: string | null;
   contact_phone: string | null; cost: number; status: VendorStatus; notes: string | null;
 };
 
 const STATUS_LABEL: Record<VendorStatus, string> = { prospect: "Prospect", confirmed: "Confirmed", completed: "Completed", cancelled: "Cancelled" };
-const EMPTY: VendorInput = { name: "", category: "", contactName: "", contactEmail: "", contactPhone: "", cost: "", status: "prospect", notes: "" };
+const EMPTY: VendorInput = { name: "", category: "", city: "", contactName: "", contactEmail: "", contactPhone: "", cost: "", status: "prospect", notes: "" };
 
 export function VendorManager({ eventId, vendors, currency, canEdit }: { eventId: string; vendors: Vendor[]; currency: string; canEdit: boolean }) {
   const confirm = useConfirm();
@@ -25,13 +26,14 @@ export function VendorManager({ eventId, vendors, currency, canEdit }: { eventId
   const [status, setStatus] = useState("all");
   const [editing, setEditing] = useState<string | "new" | null>(null);
   const [form, setForm] = useState<VendorInput>(EMPTY);
+  const [phoneCode, setPhoneCode] = useState(DEFAULT_COUNTRY_CODE);
   const [error, setError] = useState<{ text: string; field?: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
   const categories = [...new Set(vendors.map((v) => v.category))].sort();
   const visible = vendors.filter(
     (v) =>
-      (!q.trim() || v.name.toLowerCase().includes(q.trim().toLowerCase())) &&
+      (!q.trim() || [v.name, v.city ?? ""].some((s) => s.toLowerCase().includes(q.trim().toLowerCase()))) &&
       (category === "all" || v.category === category) &&
       (status === "all" || v.status === status)
   );
@@ -47,6 +49,13 @@ export function VendorManager({ eventId, vendors, currency, canEdit }: { eventId
   }
   const fieldErr = (f: string) => (error?.field === f ? <span className="block text-xs text-destructive">{error.text}</span> : null);
   const set = <K extends keyof VendorInput>(k: K, v: VendorInput[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const openForm = (id: string | "new", input: VendorInput) => {
+    setEditing(id);
+    setForm(input);
+    setPhoneCode(input.contactPhone ? splitPhone(input.contactPhone).code : DEFAULT_COUNTRY_CODE);
+    setError(null);
+  };
+  const phoneDigits = splitPhone(form.contactPhone).number;
 
   const formUi = (
     <div className="space-y-3 rounded-md border border-border bg-muted/40 p-4">
@@ -59,15 +68,25 @@ export function VendorManager({ eventId, vendors, currency, canEdit }: { eventId
           <datalist id="vendor-categories">{["Venue", "Catering", "Production", "Marketing", "Staff", "Travel", "Technology", "Speakers", "Other", ...categories].map((c) => <option key={c} value={c} />)}</datalist>
           {fieldErr("category")}
         </label>
+        <label className="block space-y-1 text-sm font-medium text-foreground">City / location *
+          <input className={inputCls} value={form.city} onChange={(e) => set("city", e.target.value)} placeholder="Mumbai" />{fieldErr("city")}
+        </label>
         <label className="block space-y-1 text-sm font-medium text-foreground">Contact name
           <input className={inputCls} value={form.contactName} onChange={(e) => set("contactName", e.target.value)} />
         </label>
-        <label className="block space-y-1 text-sm font-medium text-foreground">Contact email
+        <label className="block space-y-1 text-sm font-medium text-foreground">Contact email *
           <input type="email" className={inputCls} value={form.contactEmail} onChange={(e) => set("contactEmail", e.target.value)} />{fieldErr("contactEmail")}
         </label>
-        <label className="block space-y-1 text-sm font-medium text-foreground">Contact phone
-          <input type="tel" className={inputCls} value={form.contactPhone} onChange={(e) => set("contactPhone", e.target.value)} />
-        </label>
+        <div className="space-y-1 text-sm font-medium text-foreground">
+          <label htmlFor="vendor-phone">Contact phone *</label>
+          <div className="flex gap-2">
+            <select aria-label="Country code" className={`${inputCls} w-24 shrink-0`} value={phoneCode} onChange={(e) => { setPhoneCode(e.target.value); set("contactPhone", joinPhone(e.target.value, phoneDigits)); }}>
+              {COUNTRY_CODES.map((c) => <option key={c.code} value={c.code}>{c.code} {c.country}</option>)}
+            </select>
+            <input id="vendor-phone" type="tel" inputMode="numeric" className={inputCls} value={phoneDigits} onChange={(e) => set("contactPhone", joinPhone(phoneCode, e.target.value.replace(/\D/g, "").slice(0, COUNTRY_CODES.find((c) => c.code === phoneCode)?.max)))} />
+          </div>
+          {fieldErr("contactPhone")}
+        </div>
         <label className="block space-y-1 text-sm font-medium text-foreground">Cost
           <input className={inputCls} inputMode="decimal" value={form.cost} onChange={(e) => set("cost", e.target.value)} />{fieldErr("cost")}
         </label>
@@ -92,7 +111,7 @@ export function VendorManager({ eventId, vendors, currency, canEdit }: { eventId
     <div className="space-y-5">
       <div className="flex flex-wrap items-end gap-3">
         <label className="min-w-48 flex-1 space-y-1 text-xs font-medium text-muted-foreground">Search vendors
-          <input className={inputCls} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Vendor name" />
+          <input className={inputCls} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Vendor name or city" />
         </label>
         <label className="space-y-1 text-xs font-medium text-muted-foreground">Category
           <select className={inputCls} value={category} onChange={(e) => setCategory(e.target.value)}>
@@ -104,7 +123,7 @@ export function VendorManager({ eventId, vendors, currency, canEdit }: { eventId
             <option value="all">All</option>{(Object.keys(STATUS_LABEL) as VendorStatus[]).map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
           </select>
         </label>
-        {canEdit && editing !== "new" && <button type="button" className={btnPrimary} onClick={() => { setEditing("new"); setForm(EMPTY); setError(null); }}>+ Add vendor</button>}
+        {canEdit && editing !== "new" && <button type="button" className={btnPrimary} onClick={() => openForm("new", EMPTY)}>+ Add vendor</button>}
       </div>
 
       {editing === "new" && formUi}
@@ -112,7 +131,7 @@ export function VendorManager({ eventId, vendors, currency, canEdit }: { eventId
       {vendors.length === 0 && editing !== "new" && (
         <EmptyState title="No vendors yet">
           <p>Keep every supplier, contact and cost for this event in one place.</p>
-          {canEdit && <button type="button" className={`${btnPrimary} mt-3`} onClick={() => { setEditing("new"); setForm(EMPTY); setError(null); }}>Add vendor</button>}
+          {canEdit && <button type="button" className={`${btnPrimary} mt-3`} onClick={() => openForm("new", EMPTY)}>Add vendor</button>}
         </EmptyState>
       )}
       {vendors.length > 0 && visible.length === 0 && <EmptyState title="No vendors match your filters" />}
@@ -126,7 +145,7 @@ export function VendorManager({ eventId, vendors, currency, canEdit }: { eventId
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2 font-medium text-foreground">{v.name} <StatusBadge status={v.status} label={STATUS_LABEL[v.status]} /></p>
-                  <p className="text-sm text-muted-foreground">{v.category} · {formatMoney(toCents(v.cost), currency)}</p>
+                  <p className="text-sm text-muted-foreground">{[v.category, v.city, formatMoney(toCents(v.cost), currency)].filter(Boolean).join(" · ")}</p>
                   {(v.contact_name || v.contact_email || v.contact_phone) && (
                     <p className="break-words text-sm text-muted-foreground">{[v.contact_name, v.contact_email, v.contact_phone].filter(Boolean).join(" · ")}</p>
                   )}
@@ -134,7 +153,7 @@ export function VendorManager({ eventId, vendors, currency, canEdit }: { eventId
                 </div>
                 {canEdit && (
                   <div className="flex gap-3 text-sm">
-                    <button type="button" className="underline" onClick={() => { setEditing(v.id); setError(null); setForm({ name: v.name, category: v.category, contactName: v.contact_name ?? "", contactEmail: v.contact_email ?? "", contactPhone: v.contact_phone ?? "", cost: String(v.cost), status: v.status, notes: v.notes ?? "" }); }}>Edit</button>
+                    <button type="button" className="underline" onClick={() => openForm(v.id, { name: v.name, category: v.category, city: v.city ?? "", contactName: v.contact_name ?? "", contactEmail: v.contact_email ?? "", contactPhone: v.contact_phone ?? "", cost: String(v.cost), status: v.status, notes: v.notes ?? "" })}>Edit</button>
                     <button type="button" disabled={pending} className="text-destructive underline" onClick={async () => { if (await confirm({ title: `Delete vendor "${v.name}"?`, destructive: true })) run(() => deleteVendor(eventId, v.id)); }}>Delete</button>
                   </div>
                 )}

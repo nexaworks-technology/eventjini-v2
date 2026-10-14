@@ -7,7 +7,7 @@ export default async function VendorsPage({ params }: { params: Promise<{ id: st
   const { supabase, event, role } = await requireEventAccess(id, TASK_READ_ROLES);
   const { data } = await supabase
     .from("event_vendors")
-    .select("id,name,category,contact_name,contact_email,contact_phone,cost,status,notes")
+    .select("id,name,category,city,contact_name,contact_email,contact_phone,cost,status,notes")
     .eq("event_id", id)
     .order("name");
 

@@ -1,3 +1,6 @@
+import { emailFormatError } from "./email-address";
+import { phoneError } from "./phone";
+
 export type RegistrationStatus = "pending" | "approved" | "rejected" | "checked_in" | "cancelled";
 export type FieldType = "text" | "long_text" | "dropdown" | "checkbox";
 
@@ -54,8 +57,6 @@ export const STATUS_LABELS: Record<RegistrationStatus, string> = {
   cancelled: "Cancelled",
 };
 
-const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-
 export function normalizeSpaces(s: string): string {
   return s.replace(/\s+/g, " ").trim();
 }
@@ -69,8 +70,12 @@ export function validateRegistration(
 
   if (!normalizeSpaces(values.firstName)) errors.firstName = "First name is required.";
   if (!normalizeSpaces(values.lastName)) errors.lastName = "Last name is required.";
-  if (!values.email.trim()) errors.email = "Email is required.";
-  else if (!EMAIL_RE.test(values.email.trim())) errors.email = "Enter a valid email address.";
+  const emailErr = emailFormatError(values.email);
+  if (emailErr) errors.email = emailErr;
+  if (values.phone.trim()) {
+    const phoneErr = phoneError(values.phone);
+    if (phoneErr) errors.phone = phoneErr;
+  }
 
   if (requireB2b) {
     if (!normalizeSpaces(values.companyName)) errors.companyName = "Company name is required.";

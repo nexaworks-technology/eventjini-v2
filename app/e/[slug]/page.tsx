@@ -5,7 +5,7 @@ import { PageViewTracker } from "@/components/page-view-tracker";
 import { PoweredBy, PublicSection } from "@/components/eventjini/public-event-chrome";
 import { eventBrandStyle } from "@/lib/branding";
 import { getPublishedEvent, getViewerState } from "@/lib/public-event";
-import { formatEventWhen } from "@/lib/time";
+import { eventDays, formatEventWhen, utcToZoned } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/server";
 
@@ -30,6 +30,16 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   ]);
   const sessions = sessionRows ?? [];
   const timeFmt = new Intl.DateTimeFormat("en-US", { timeZone: event.timezone, hour: "numeric", minute: "2-digit" });
+  const days = eventDays(event.start_at, event.end_at, event.timezone);
+  const agendaDays: { key: string; label: string | null; sessions: typeof sessions }[] = [];
+  for (const s of sessions) {
+    const date = utcToZoned(s.start_at, event.timezone).date;
+    const idx = days.findIndex((d) => d.date === date);
+    const label = days.length > 1 ? (idx >= 0 ? `Day ${idx + 1} · ${days[idx].label}` : date) : null;
+    const group = agendaDays.at(-1);
+    if (group?.key === date) group.sessions.push(s);
+    else agendaDays.push({ key: date, label, sessions: [s] });
+  }
 
   const registerHref = `/e/${event.slug}/register`;
 
@@ -109,18 +119,25 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
 
         {sessions.length > 0 && (
           <PublicSection title="Agenda">
-            <ol className="space-y-4">
-              {sessions.map((s) => (
-                <li key={s.id} className="grid grid-cols-[4.5rem_1fr] gap-3 border-l-2 pl-3" style={{ borderColor: "var(--event-primary)" }}>
-                  <p className="text-sm font-medium text-muted-foreground tabular-nums">{timeFmt.format(new Date(s.start_at))}</p>
-                  <div>
-                    <p className="font-medium">{s.title}</p>
-                    {s.speaker && <p className="text-sm text-foreground/80">{s.speaker}</p>}
-                    {s.description && <p className="text-sm whitespace-pre-line text-muted-foreground">{s.description}</p>}
-                  </div>
-                </li>
+            <div className="space-y-6">
+              {agendaDays.map((day) => (
+                <div key={day.key} className="space-y-3">
+                  {day.label && <h3 className="font-heading text-sm font-semibold">{day.label}</h3>}
+                  <ol className="space-y-4">
+                    {day.sessions.map((s) => (
+                      <li key={s.id} className="grid grid-cols-[4.5rem_1fr] gap-3 border-l-2 pl-3" style={{ borderColor: "var(--event-primary)" }}>
+                        <p className="text-sm font-medium text-muted-foreground tabular-nums">{timeFmt.format(new Date(s.start_at))}</p>
+                        <div>
+                          <p className="font-medium">{s.title}</p>
+                          {s.speaker && <p className="text-sm text-foreground/80">{s.speaker}</p>}
+                          {s.description && <p className="text-sm whitespace-pre-line text-muted-foreground">{s.description}</p>}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
               ))}
-            </ol>
+            </div>
           </PublicSection>
         )}
 

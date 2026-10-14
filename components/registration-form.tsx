@@ -13,6 +13,7 @@ import {
   type RegistrationField,
   type RegistrationValues,
 } from "@/lib/registration";
+import { COUNTRY_CODES, DEFAULT_COUNTRY_CODE, joinPhone } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/utils/supabase/client";
 
@@ -63,6 +64,8 @@ export function RegistrationForm({
     jobTitle: "",
     answers: Object.fromEntries(fields.filter((f) => f.field_type === "checkbox").map((f) => [f.field_key, false])),
   });
+  const [phoneCode, setPhoneCode] = useState(DEFAULT_COUNTRY_CODE);
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
@@ -157,8 +160,40 @@ export function RegistrationForm({
         <Field label="Email" required error={errors.email}>
           {(a) => <input {...a} type="email" className={control} autoComplete="email" value={values.email} disabled={pending} onChange={(e) => set("email", e.target.value)} />}
         </Field>
-        <Field label="Phone" error={errors.phone}>
-          {(a) => <input {...a} type="tel" className={control} autoComplete="tel" value={values.phone} disabled={pending} onChange={(e) => set("phone", e.target.value)} />}
+        <Field label="Mobile number" error={errors.phone}>
+          {(a) => (
+            <div className="flex gap-2">
+              <select
+                aria-label="Country code"
+                className={cn(inputCls, "h-10 w-32 shrink-0 sm:w-44")}
+                value={phoneCode}
+                disabled={pending}
+                onChange={(e) => {
+                  setPhoneCode(e.target.value);
+                  set("phone", joinPhone(e.target.value, phoneNumber));
+                }}
+              >
+                {COUNTRY_CODES.map((c) => (
+                  <option key={c.code} value={c.code}>{c.code} {c.country}</option>
+                ))}
+              </select>
+              <input
+                {...a}
+                type="tel"
+                inputMode="numeric"
+                className={control}
+                autoComplete="tel-national"
+                placeholder={phoneCode === "+91" ? "9876543210" : undefined}
+                value={phoneNumber}
+                disabled={pending}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "").slice(0, COUNTRY_CODES.find((c) => c.code === phoneCode)?.max);
+                  setPhoneNumber(digits);
+                  set("phone", joinPhone(phoneCode, digits));
+                }}
+              />
+            </div>
+          )}
         </Field>
       </Group>
 

@@ -7,7 +7,7 @@ import { PublishButton } from "@/components/publish-button";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ADMIN_ROLES, CHECKIN_ROLES, requireEventAccess, TASK_READ_ROLES, type EventRole } from "@/lib/event-access";
-import { formatEventWhen } from "@/lib/time";
+import { eventDays, formatEventWhen, utcToZoned } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
 const QUICK_LINKS: { path: string; label: string; description: string; roles: EventRole[] | null; icon: typeof Users }[] = [
@@ -42,12 +42,22 @@ export default async function EventOverviewPage({
   const counts: Record<string, number> = {};
   for (const r of regRows ?? []) counts[r.status] = (counts[r.status] ?? 0) + 1;
   const confirmed = (counts.approved ?? 0) + (counts.checked_in ?? 0);
+  const days = eventDays(event.start_at, event.end_at, event.timezone);
+  const dayOf = (iso: string) => {
+    const i = days.findIndex((d) => d.date === utcToZoned(iso, event.timezone).date);
+    return i >= 0 ? `Day ${i + 1} · ` : "";
+  };
   const links = QUICK_LINKS.filter((l) => !l.roles || l.roles.includes(role));
 
   return (
     <div className="max-w-4xl space-y-6">
       {denied === "1" && <FormMessage tone="warning">You don&apos;t have access to that page for this event.</FormMessage>}
       {published === "1" && isPublished && <FormMessage tone="success">Your event is published.</FormMessage>}
+      {event.status === "draft" && isAdmin && (
+        <FormMessage tone="warning">
+          This event is a draft and isn&apos;t visible to the public yet. Set up registration, the agenda and sponsors, then publish it when you&apos;re ready.
+        </FormMessage>
+      )}
 
       {role === "scanner" && (
         <Link href={`/dashboard/events/${id}/check-in`} className={cn(buttonVariants({ size: "lg" }), "h-14 w-full text-base")}>
@@ -110,7 +120,7 @@ export default async function EventOverviewPage({
               <ul className="divide-y">
                 {sessions!.map((s) => (
                   <li key={s.id} className="flex flex-wrap gap-x-3 py-2 text-sm first:pt-0 last:pb-0">
-                    <span className="w-36 shrink-0 text-muted-foreground tabular-nums">{formatEventWhen(s.start_at, s.end_at, event.timezone).time}</span>
+                    <span className={cn("shrink-0 text-muted-foreground tabular-nums", days.length > 1 ? "w-48" : "w-36")}>{days.length > 1 && dayOf(s.start_at)}{formatEventWhen(s.start_at, s.end_at, event.timezone).time}</span>
                     <span className="font-medium">{s.title}</span>
                     {s.speaker && <span className="text-muted-foreground">{s.speaker}</span>}
                   </li>

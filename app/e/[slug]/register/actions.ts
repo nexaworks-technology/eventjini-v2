@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { VISITOR_COOKIE } from "@/lib/analytics";
+import { emailDomainExists } from "@/lib/email-domain";
 import {
   normalizeSpaces,
   UUID_RE,
@@ -49,6 +50,9 @@ export async function submitRegistration(
   const fields = (fieldRows ?? []) as RegistrationField[];
 
   const fieldErrors = validateRegistration(values, fields, event.require_b2b_data);
+  if (!fieldErrors.email && !(await emailDomainExists(values.email))) {
+    fieldErrors.email = "We couldn't find that email domain. Check the part after the @.";
+  }
   if (Object.keys(fieldErrors).length > 0) {
     return { ok: false, error: "Please fix the highlighted fields.", fieldErrors };
   }
@@ -58,7 +62,7 @@ export async function submitRegistration(
     p_first_name: normalizeSpaces(values.firstName),
     p_last_name: normalizeSpaces(values.lastName),
     p_email: values.email.trim(),
-    p_phone: normalizeSpaces(values.phone) || null,
+    p_phone: values.phone.trim() || null,
     p_company_name: normalizeSpaces(values.companyName) || null,
     p_job_title: normalizeSpaces(values.jobTitle) || null,
     p_custom_answers: values.answers,

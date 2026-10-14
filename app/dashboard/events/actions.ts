@@ -29,7 +29,7 @@ export async function checkSlugAvailability(
   return { state: data ? "available" : "taken" };
 }
 
-const SLUG_TAKEN = "That event URL is already in use. Choose another slug.";
+const SLUG_TAKEN = "That event page link is already in use. Choose another one.";
 const GENERIC_ERROR = "Could not save the event. Please try again.";
 
 export async function saveEvent(
