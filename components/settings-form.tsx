@@ -7,7 +7,7 @@ import { checkSlugAvailability, saveEvent } from "@/app/dashboard/events/actions
 import { removeCoverImage, saveBranding, setCoverImage, unpublishEvent } from "@/app/dashboard/events/[id]/settings/actions";
 import { btnDanger, btnPrimary, btnSecondary, inputCls } from "@/components/eventjini/classes";
 import { contrastOnWhite, DEFAULT_ACCENT, DEFAULT_PRIMARY, HEX_RE, readableOn } from "@/lib/branding";
-import { validateEventValues, type EventFormValues, type FieldErrors } from "@/lib/events";
+import { EVENT_TYPES, SOCIAL_KEYS, SOCIAL_LABELS, SUMMARY_MAX, validateEventValues, type EventFormValues, type FieldErrors, type SocialKey } from "@/lib/events";
 import { CURRENCIES } from "@/lib/money";
 import { slugify } from "@/lib/slug";
 import { createClient } from "@/utils/supabase/client";
@@ -59,6 +59,7 @@ export function SettingsForm({
   const A = HEX_RE.test(ac) ? ac : DEFAULT_ACCENT;
   const zones = timezones.includes(v.timezone) ? timezones : [v.timezone, ...timezones];
   const set = <K extends keyof EventFormValues>(k: K, val: EventFormValues[K]) => { setV((x) => ({ ...x, [k]: val })); setErrors((e) => ({ ...e, [k]: undefined })); };
+  const setSocial = (k: SocialKey, val: string) => { setV((x) => ({ ...x, socialLinks: { ...x.socialLinks, [k]: val } })); setErrors((e) => ({ ...e, [`social.${k}`]: undefined })); };
   const err = (k: keyof FieldErrors) => (errors[k] ? <span className="block text-xs text-destructive">{errors[k]}</span> : null);
 
   function saveDetails() {
@@ -119,7 +120,18 @@ export function SettingsForm({
           <span className="block text-xs font-normal text-muted-foreground">The web address delegates use to open your event: eventjini.com/e/{v.slug || "your-event"}</span>
           {slugHint && <span className="block text-xs text-muted-foreground">{slugHint}</span>}{err("slug")}
         </label>
+        <label className="block space-y-1 text-sm font-medium text-foreground">Event type
+          <select className={inputCls} value={v.eventType} onChange={(e) => set("eventType", e.target.value as EventFormValues["eventType"])}>{EVENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select>{err("eventType")}
+        </label>
+        <label className="block space-y-1 text-sm font-medium text-foreground">Summary
+          <input className={inputCls} maxLength={SUMMARY_MAX} value={v.summary} onChange={(e) => set("summary", e.target.value)} />
+          <span className="block text-xs font-normal text-muted-foreground">A one-line pitch shown under the title. {v.summary.length}/{SUMMARY_MAX}</span>{err("summary")}
+        </label>
         <label className="block space-y-1 text-sm font-medium text-foreground">Description<textarea className={inputCls} rows={4} value={v.description} onChange={(e) => set("description", e.target.value)} /></label>
+        <label className="block space-y-1 text-sm font-medium text-foreground">Tags
+          <input className={inputCls} value={v.tags} onChange={(e) => set("tags", e.target.value)} placeholder="AI, Startups, Mumbai" />
+          <span className="block text-xs font-normal text-muted-foreground">Separate with commas. Up to 10.</span>{err("tags")}
+        </label>
 
         <h3 className="pt-2 text-sm font-semibold text-foreground">Date &amp; location</h3>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -132,7 +144,19 @@ export function SettingsForm({
         <label className="block space-y-1 text-sm font-medium text-foreground">Timezone
           <select className={inputCls} value={v.timezone} onChange={(e) => set("timezone", e.target.value)}>{zones.map((z) => <option key={z} value={z}>{z}</option>)}</select>{err("timezone")}
         </label>
-        <label className="block space-y-1 text-sm font-medium text-foreground">Location *<input className={inputCls} value={v.location} onChange={(e) => set("location", e.target.value)} placeholder="Venue name and city, or TBD" />{err("location")}</label>
+        <label className="block space-y-1 text-sm font-medium text-foreground">Venue{v.eventType !== "virtual" && " *"}<input className={inputCls} value={v.location} onChange={(e) => set("location", e.target.value)} placeholder="Venue name, or TBD" />{err("location")}</label>
+        <label className="block space-y-1 text-sm font-medium text-foreground">Address<textarea className={inputCls} rows={2} value={v.venueAddress} onChange={(e) => set("venueAddress", e.target.value)} />
+          <span className="block text-xs font-normal text-muted-foreground">Used for the map link on your event page.</span>{err("venueAddress")}
+        </label>
+
+        <h3 className="pt-2 text-sm font-semibold text-foreground">Website &amp; social links</h3>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {SOCIAL_KEYS.map((k) => (
+            <label key={k} className="block space-y-1 text-sm font-medium text-foreground">{SOCIAL_LABELS[k]}
+              <input className={inputCls} type="url" inputMode="url" value={v.socialLinks[k]} onChange={(e) => setSocial(k, e.target.value)} placeholder="https://" />{err(`social.${k}`)}
+            </label>
+          ))}
+        </div>
 
         <h3 className="pt-2 text-sm font-semibold text-foreground">Registration settings</h3>
         <label className="block space-y-1 text-sm font-medium text-foreground">Capacity<input className={inputCls} inputMode="numeric" value={v.capacity} onChange={(e) => set("capacity", e.target.value)} />{err("capacity")}</label>

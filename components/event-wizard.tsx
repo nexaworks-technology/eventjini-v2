@@ -12,7 +12,10 @@ import {
   type SlugCheck,
 } from "@/app/dashboard/events/actions";
 import {
+  EVENT_TYPES,
+  parseTags,
   STEP_FIELDS,
+  SUMMARY_MAX,
   validateEventValues,
   type EventFormValues,
   type FieldErrors,
@@ -242,6 +245,45 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
               )}
             </Field>
 
+            <fieldset className="space-y-1">
+              <legend className="text-sm font-medium text-foreground">Event type</legend>
+              <div className="flex flex-wrap gap-2">
+                {EVENT_TYPES.map((t) => (
+                  <label
+                    key={t.value}
+                    className={`cursor-pointer rounded-lg border px-3 py-1.5 text-sm has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50 ${
+                      values.eventType === t.value ? "border-primary bg-primary/10 font-medium text-foreground" : "border-border text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="eventType"
+                      value={t.value}
+                      checked={values.eventType === t.value}
+                      onChange={() => update("eventType", t.value)}
+                      className="sr-only"
+                    />
+                    {t.label}
+                  </label>
+                ))}
+              </div>
+              {errors.eventType && <span className="block text-xs text-destructive">{errors.eventType}</span>}
+            </fieldset>
+
+            <Field
+              label="Summary (optional)"
+              error={errors.summary}
+              hint={`A one-line pitch shown under the title. ${values.summary.length}/${SUMMARY_MAX}`}
+            >
+              <input
+                className={inputCls}
+                value={values.summary}
+                maxLength={SUMMARY_MAX}
+                onChange={(e) => update("summary", e.target.value)}
+                placeholder="Two days of talks and workshops on applied AI"
+              />
+            </Field>
+
             <Field label="Description (optional)">
               <textarea
                 className={inputCls}
@@ -323,13 +365,31 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
               )
             )}
 
-            <Field label="Location" error={errors.location} hint="Venue not decided yet? Enter TBD and update it later.">
+            <Field
+              label={values.eventType === "virtual" ? "Venue (optional)" : "Venue"}
+              error={errors.location}
+              hint="Venue not decided yet? Enter TBD and update it later."
+            >
               <input
                 className={inputCls}
                 value={values.location}
                 onChange={(e) => update("location", e.target.value)}
-                placeholder="Jio World Convention Centre, Mumbai"
+                placeholder="Jio World Convention Centre"
               />
+            </Field>
+
+            <Field label="Address (optional)" error={errors.venueAddress} hint="Used for the map link on your event page.">
+              <textarea
+                className={inputCls}
+                rows={2}
+                value={values.venueAddress}
+                onChange={(e) => update("venueAddress", e.target.value)}
+                placeholder="G Block, Bandra Kurla Complex, Mumbai 400098"
+              />
+            </Field>
+
+            <Field label="Tags (optional)" error={errors.tags} hint="Separate with commas, for example: AI, Startups, Mumbai">
+              <input className={inputCls} value={values.tags} onChange={(e) => update("tags", e.target.value)} />
             </Field>
           </>
         )}
@@ -410,7 +470,7 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
             <h2 className="text-lg font-semibold text-foreground">Review your event</h2>
             {mode === "create" && (
               <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
-                Your event will be saved as a draft that only you and your team can see. Add registration questions, the agenda and sponsors, then publish it from the event overview when you&apos;re ready.
+                Your event will be saved as a draft that only you and your team can see. Add registration questions and the agenda, then publish it from the event overview when you&apos;re ready.
               </p>
             )}
 
@@ -426,8 +486,12 @@ export function EventWizard({ mode, initialValues, timezones, eventId, isPublish
               )}
               <p className="font-medium text-foreground">{values.title}</p>
               <p className="text-sm text-muted-foreground">/e/{values.slug}</p>
+              <p className="text-sm text-muted-foreground">{EVENT_TYPES.find((t) => t.value === values.eventType)?.label}</p>
+              {values.summary && <p className="text-sm text-foreground">{values.summary}</p>}
               {values.description && <p className="whitespace-pre-line text-sm text-foreground">{values.description}</p>}
               {values.location && <p className="text-sm text-foreground">{values.location}</p>}
+              {values.venueAddress && <p className="whitespace-pre-line text-sm text-muted-foreground">{values.venueAddress}</p>}
+              {parseTags(values.tags).length > 0 && <p className="text-sm text-muted-foreground">Tags: {parseTags(values.tags).join(", ")}</p>}
             </Section>
 
             <Section title="Date & Time" onEdit={() => setStep(1)}>

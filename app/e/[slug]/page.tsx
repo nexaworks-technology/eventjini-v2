@@ -1,9 +1,10 @@
-import { CalendarDays, Clock, MapPin, Ticket, Users } from "lucide-react";
+import { CalendarDays, Clock, ExternalLink, MapPin, MonitorPlay, Ticket, Users } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageViewTracker } from "@/components/page-view-tracker";
 import { PoweredBy, PublicSection } from "@/components/eventjini/public-event-chrome";
 import { eventBrandStyle } from "@/lib/branding";
+import { EVENT_TYPES, mapsUrl, SOCIAL_KEYS, SOCIAL_LABELS } from "@/lib/events";
 import { FEATURES } from "@/lib/features";
 import { getPublishedEvent, getViewerState } from "@/lib/public-event";
 import { eventDays, formatEventWhen, utcToZoned } from "@/lib/time";
@@ -45,6 +46,17 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   }
 
   const registerHref = `/e/${event.slug}/register`;
+  const mapHref = event.event_type !== "virtual" ? mapsUrl(event) : null;
+  const typeLabel = event.event_type !== "in_person" ? EVENT_TYPES.find((t) => t.value === event.event_type)?.label : null;
+  const socials = SOCIAL_KEYS.flatMap((k) => (event.social_links?.[k] ? [{ key: k, href: event.social_links[k]! }] : []));
+  const tags = event.tags ?? [];
+  const venue = event.location && (
+    <span className="inline-flex items-center gap-1.5">
+      <MapPin className="size-4" aria-hidden />
+      {mapHref ? <a href={mapHref} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">{event.location}</a> : event.location}
+    </span>
+  );
+  const typeBadge = typeLabel && <span className="inline-flex items-center gap-1.5"><MonitorPlay className="size-4" aria-hidden /> {typeLabel} event</span>;
 
   /** Same states and destinations as before; `onHero` only changes colours. */
   function cta(onHero: boolean) {
@@ -85,10 +97,12 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
           <div className="mt-6 space-y-4 pb-2">
             <div className="h-1 w-16 rounded-full" style={{ backgroundColor: "var(--event-primary)" }} aria-hidden />
             <h1 className="font-heading text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-4xl">{event.title}</h1>
+            {event.summary && <p className="text-lg text-pretty text-foreground/80">{event.summary}</p>}
             <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground sm:text-base">
               <span className="inline-flex items-center gap-1.5"><CalendarDays className="size-4" aria-hidden /> {when.date}</span>
               <span className="inline-flex items-center gap-1.5"><Clock className="size-4" aria-hidden /> {when.time} ({event.timezone})</span>
-              {event.location && <span className="inline-flex items-center gap-1.5"><MapPin className="size-4" aria-hidden /> {event.location}</span>}
+              {venue}
+              {typeBadge}
             </div>
             <div>{cta(false)}</div>
           </div>
@@ -97,10 +111,12 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
         <header className="event-hero">
           <div className="mx-auto max-w-3xl space-y-5 px-5 py-10 sm:px-8 sm:py-14">
             <h1 className="font-heading text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-5xl">{event.title}</h1>
+            {event.summary && <p className="text-lg text-pretty opacity-90">{event.summary}</p>}
             <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm opacity-90 sm:text-base">
               <span className="inline-flex items-center gap-1.5"><CalendarDays className="size-4" aria-hidden /> {when.date}</span>
               <span className="inline-flex items-center gap-1.5"><Clock className="size-4" aria-hidden /> {when.time} ({event.timezone})</span>
-              {event.location && <span className="inline-flex items-center gap-1.5"><MapPin className="size-4" aria-hidden /> {event.location}</span>}
+              {venue}
+              {typeBadge}
             </div>
             <div>{cta(true)}</div>
           </div>
@@ -118,6 +134,31 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
         )}
         {!event.description && event.capacity !== null && (
           <p className="inline-flex items-center gap-1.5 text-sm text-muted-foreground"><Users className="size-4" aria-hidden /> {event.capacity} {event.capacity === 1 ? "attendee" : "attendees"}</p>
+        )}
+
+        {event.venue_address && event.event_type !== "virtual" && (
+          <PublicSection title="Venue">
+            {event.location && <p className="font-medium">{event.location}</p>}
+            <p className="text-sm whitespace-pre-line text-muted-foreground">{event.venue_address}</p>
+            {mapHref && (
+              <a href={mapHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium underline underline-offset-4">
+                Open in Google Maps <ExternalLink className="size-3.5" aria-hidden />
+              </a>
+            )}
+          </PublicSection>
+        )}
+
+        {(tags.length > 0 || socials.length > 0) && (
+          <div className="flex flex-wrap items-center gap-2">
+            {tags.map((t) => (
+              <span key={t} className="rounded-full border bg-card px-2.5 py-0.5 text-xs text-muted-foreground">{t}</span>
+            ))}
+            {socials.map((s) => (
+              <a key={s.key} href={s.href} target="_blank" rel="noopener noreferrer nofollow" className="rounded-full border bg-card px-2.5 py-0.5 text-xs font-medium hover:bg-muted">
+                {SOCIAL_LABELS[s.key]}
+              </a>
+            ))}
+          </div>
         )}
 
         {sessions.length > 0 && (

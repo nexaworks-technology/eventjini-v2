@@ -44,7 +44,7 @@ export async function saveEvent(
   } = await supabase.auth.getUser();
   if (!user || user.is_anonymous) redirect("/login");
 
-  const { errors, startAt, endAt, capacity } = validateEventValues(values);
+  const { errors, startAt, endAt, capacity, tags, socialLinks } = validateEventValues(values);
   if (Object.keys(errors).length > 0 || !startAt || !endAt) {
     return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: errors };
   }
@@ -55,6 +55,11 @@ export async function saveEvent(
     description: values.description.trim() || null,
     cover_image_url: values.coverImageUrl.trim() || null,
     location: values.location.trim() || null,
+    event_type: values.eventType,
+    summary: values.summary.trim() || null,
+    tags,
+    venue_address: values.venueAddress.trim() || null,
+    social_links: socialLinks,
     start_at: startAt.toISOString(),
     end_at: endAt.toISOString(),
     timezone: values.timezone,
