@@ -6,6 +6,7 @@ import { SectionTitle } from "@/components/eventjini/page-header";
 import { PublishButton } from "@/components/publish-button";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { isEnabled } from "@/lib/features";
 import { ADMIN_ROLES, CHECKIN_ROLES, requireEventAccess, TASK_READ_ROLES, type EventRole } from "@/lib/event-access";
 import { eventDays, formatEventWhen, utcToZoned } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -47,7 +48,7 @@ export default async function EventOverviewPage({
     const i = days.findIndex((d) => d.date === utcToZoned(iso, event.timezone).date);
     return i >= 0 ? `Day ${i + 1} · ` : "";
   };
-  const links = QUICK_LINKS.filter((l) => !l.roles || l.roles.includes(role));
+  const links = QUICK_LINKS.filter((l) => isEnabled(l.path.slice(1)) && (!l.roles || l.roles.includes(role)));
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -55,7 +56,7 @@ export default async function EventOverviewPage({
       {published === "1" && isPublished && <FormMessage tone="success">Your event is published.</FormMessage>}
       {event.status === "draft" && isAdmin && (
         <FormMessage tone="warning">
-          This event is a draft and isn&apos;t visible to the public yet. Set up registration, the agenda and sponsors, then publish it when you&apos;re ready.
+          This event is a draft and isn&apos;t visible to the public yet. Set up registration and the agenda, then publish it when you&apos;re ready.
         </FormMessage>
       )}
 

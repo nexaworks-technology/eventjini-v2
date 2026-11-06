@@ -5,6 +5,7 @@ import { emailConfigured, fromAddress, getResend } from "@/lib/email/resend";
 import { formatEventWhen } from "@/lib/time";
 import { renderEmailHtml } from "@/lib/email/layout";
 import { renderTemplate } from "@/lib/email/template";
+import { siteUrl } from "@/lib/site-url";
 
 type Claimed = {
   id: string;
@@ -29,13 +30,6 @@ export type QueueResult =
   | { ok: false; reason: "not_configured" | "error" };
 
 const CHUNK = 50;
-
-function siteUrl(): string {
-  const explicit = process.env.NEXT_PUBLIC_SITE_URL;
-  if (explicit) return explicit.replace(/\/$/, "");
-  const prod = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-  return prod ? `https://${prod}` : "http://localhost:3000";
-}
 
 function safeMessage(e: unknown): string {
   const m = e instanceof Error ? e.message : typeof e === "string" ? e : "Unknown error";

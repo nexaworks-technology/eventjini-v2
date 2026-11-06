@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PageHeader, SectionTitle } from "@/components/eventjini/page-header";
 import { redirect } from "next/navigation";
 import { InstallButton } from "@/components/install-button";
+import { FEATURES } from "@/lib/features";
 import { createClient } from "@/utils/supabase/server";
 
 export default async function DashboardPage() {
@@ -12,7 +13,7 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user || user.is_anonymous) redirect("/login");
 
-  const { data: portalData } = await supabase.rpc("my_sponsor_portals");
+  const { data: portalData } = FEATURES.sponsors ? await supabase.rpc("my_sponsor_portals") : { data: null };
   const portals = (Array.isArray(portalData) ? portalData : []) as { id: string; company_name: string; event_title: string; tier_name: string; claimed: boolean }[];
 
   const { data: profile } = await supabase
@@ -33,7 +34,7 @@ export default async function DashboardPage() {
         <Link href="/dashboard/events" className="group rounded-xl border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-accent/40">
           <CalendarDays className="size-5 text-primary" aria-hidden />
           <p className="mt-2 font-medium">Your events</p>
-          <p className="text-sm text-muted-foreground">Create, run and measure your events.</p>
+          <p className="text-sm text-muted-foreground">Create and run your events.</p>
         </Link>
         <Link href="/my-tickets" className="group rounded-xl border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-accent/40">
           <Ticket className="size-5 text-primary" aria-hidden />

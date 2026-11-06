@@ -9,6 +9,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { isEnabled } from "@/lib/features";
 import { ADMIN_ROLES, CHECKIN_ROLES, TASK_READ_ROLES, type EventRole } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
@@ -54,7 +55,7 @@ export function EventModuleNav({ eventId, role, onNavigate }: { eventId: string;
   return (
     <nav aria-label="Event" className="space-y-5">
       {GROUPS.map((g) => {
-        const items = g.items.filter((i) => !i.roles || i.roles.includes(role));
+        const items = g.items.filter((i) => isEnabled(i.key) && (!i.roles || i.roles.includes(role)));
         if (items.length === 0) return null;
         return (
           <div key={g.label} className="space-y-1">

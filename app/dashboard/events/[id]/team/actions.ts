@@ -1,7 +1,7 @@
 "use server";
 
 import { createHash, randomBytes } from "node:crypto";
-import { headers } from "next/headers";
+import { siteUrl } from "@/lib/site-url";
 import { ADMIN_ROLES, authorizeAction } from "@/lib/event-access";
 import { UUID_RE } from "@/lib/registration";
 
@@ -41,10 +41,7 @@ export async function createInvite(eventId: string, emailInput: string, role: Me
   });
   if (error) return { ok: false, error: "Could not create the invitation. Please try again." };
 
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return { ok: true, link: `${proto}://${host}/invite/${token}` };
+  return { ok: true, link: `${siteUrl()}/invite/${token}` };
 }
 
 export async function revokeInvite(eventId: string, inviteId: string): Promise<TeamResult> {

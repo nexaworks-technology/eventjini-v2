@@ -34,6 +34,8 @@ export async function updateSession(request: NextRequest) {
   if ((!user || user.is_anonymous) && isProtected) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
+    // Send the user back where they were headed; /login validates it with safeNext.
+    loginUrl.search = new URLSearchParams({ next: request.nextUrl.pathname + request.nextUrl.search }).toString();
     const redirect = NextResponse.redirect(loginUrl);
     supabaseResponse.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
     return redirect;

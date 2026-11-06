@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { PageViewTracker } from "@/components/page-view-tracker";
 import { PoweredBy, PublicSection } from "@/components/eventjini/public-event-chrome";
 import { eventBrandStyle } from "@/lib/branding";
+import { FEATURES } from "@/lib/features";
 import { getPublishedEvent, getViewerState } from "@/lib/public-event";
 import { eventDays, formatEventWhen, utcToZoned } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -26,7 +27,9 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   const supabase = await createClient();
   const [{ data: sessionRows }, { count: tierCount }] = await Promise.all([
     supabase.from("event_sessions").select("id,title,speaker,description,start_at,end_at").eq("event_id", event.id).order("start_at"),
-    supabase.from("sponsorship_tiers").select("id", { count: "exact", head: true }).eq("event_id", event.id),
+    FEATURES.sponsors
+      ? supabase.from("sponsorship_tiers").select("id", { count: "exact", head: true }).eq("event_id", event.id)
+      : Promise.resolve({ count: 0 }),
   ]);
   const sessions = sessionRows ?? [];
   const timeFmt = new Intl.DateTimeFormat("en-US", { timeZone: event.timezone, hour: "numeric", minute: "2-digit" });
@@ -70,7 +73,7 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
 
   return (
     <div className="min-h-dvh bg-background" style={eventBrandStyle(event.primary_color, event.accent_color)}>
-      <PageViewTracker eventId={event.id} />
+      {FEATURES.analytics && <PageViewTracker eventId={event.id} />}
 
       {event.cover_image_url ? (
         <header className="mx-auto max-w-4xl px-4 pt-4 sm:px-6 sm:pt-6">

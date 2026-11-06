@@ -9,6 +9,7 @@ import { LeadConsentToggle } from "@/components/lead-consent-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import { STATUS_LABELS, type RegistrationRow } from "@/lib/registration";
 import { formatShortDate } from "@/lib/time";
+import { FEATURES } from "@/lib/features";
 import { createClient } from "@/utils/supabase/server";
 
 export const metadata = { title: "My Tickets" };
@@ -71,7 +72,7 @@ export default async function MyTicketsPage() {
                     )}
                   </div>
                 )}
-                {active && <LeadConsentToggle registrationId={r.id} initial={r.sponsor_lead_consent} />}
+                {active && FEATURES.sponsors && <LeadConsentToggle registrationId={r.id} initial={r.sponsor_lead_consent} />}
               </li>
             );
           })}

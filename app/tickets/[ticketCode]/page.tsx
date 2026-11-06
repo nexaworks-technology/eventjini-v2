@@ -10,6 +10,7 @@ import type { EventRow } from "@/lib/events";
 import { STATUS_LABELS, TICKET_CODE_RE, type RegistrationRow } from "@/lib/registration";
 import { formatEventWhen } from "@/lib/time";
 import { cn } from "@/lib/utils";
+import { FEATURES } from "@/lib/features";
 import { createClient } from "@/utils/supabase/server";
 
 export const metadata = { title: "Your ticket" };
@@ -76,7 +77,7 @@ export default async function TicketPage({ params }: { params: Promise<{ ticketC
             <a href={`/api/events/${event.id}/calendar`} className={cn(buttonVariants({ size: "lg" }), "h-11 w-full")}>
               <CalendarPlus aria-hidden /> Add to calendar
             </a>
-            <LeadConsentToggle registrationId={reg.id} initial={reg.sponsor_lead_consent} />
+            {FEATURES.sponsors && <LeadConsentToggle registrationId={reg.id} initial={reg.sponsor_lead_consent} />}
           </div>
         </article>
         <p className="mt-4 text-center">
