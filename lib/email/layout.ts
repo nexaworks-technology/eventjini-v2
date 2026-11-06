@@ -12,6 +12,10 @@ export type EmailBrand = {
   where?: string;
   /** Hidden inbox-preview line shown next to the subject. */
   preheader?: string;
+  /** Overrides the call-to-action label (default "View event details"). */
+  ctaLabel?: string;
+  /** Overrides the "you registered for" footer line, e.g. for team invitations. */
+  footerNote?: string;
   /** Broadcast (marketing) emails only: adds an unsubscribe link to the footer. */
   unsubscribeUrl?: string | null;
 };
@@ -55,7 +59,7 @@ export function renderEmailHtml(text: string, brand: EmailBrand): string {
       : "";
 
   const button = brand.eventUrl
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 8px"><tr><td style="border-radius:10px;background:${primary}"><a href="${escapeHtml(brand.eventUrl)}" style="display:inline-block;padding:14px 28px;font-family:${FONT};font-size:16px;font-weight:600;color:${onPrimary};text-decoration:none;border-radius:10px">View event details</a></td></tr></table>`
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 8px"><tr><td style="border-radius:10px;background:${primary}"><a href="${escapeHtml(brand.eventUrl)}" style="display:inline-block;padding:14px 28px;font-family:${FONT};font-size:16px;font-weight:600;color:${onPrimary};text-decoration:none;border-radius:10px">${escapeHtml(brand.ctaLabel ?? "View event details")}</a></td></tr></table>`
     : "";
 
   return `<!doctype html>
@@ -73,7 +77,7 @@ ${details}
 ${button}
 </td></tr>
 <tr><td style="padding:20px 36px 32px;border-top:1px solid #e4e4e7;font-size:12px;line-height:1.6;color:#71717a">
-You're receiving this because you registered for ${title}.<br>
+${brand.footerNote ? escapeHtml(brand.footerNote) : `You're receiving this because you registered for ${title}.`}<br>
 Sent with <a href="https://eventjini-v2.vercel.app" style="color:#71717a">EventJini</a>.${
   brand.unsubscribeUrl
     ? `<br><a href="${escapeHtml(brand.unsubscribeUrl)}" style="color:#71717a;text-decoration:underline">Unsubscribe from updates for this event</a>`

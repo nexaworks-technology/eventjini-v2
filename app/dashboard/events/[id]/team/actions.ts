@@ -1,12 +1,13 @@
 "use server";
 
 import { createHash, randomBytes } from "node:crypto";
+import { sendTeamInviteEmail } from "@/lib/email/team-invite";
 import { siteUrl } from "@/lib/site-url";
 import { ADMIN_ROLES, authorizeAction } from "@/lib/event-access";
 import { UUID_RE } from "@/lib/registration";
 
 export type MemberRole = "admin" | "scanner" | "viewer";
-export type TeamResult = { ok: true; link?: string } | { ok: false; error: string };
+export type TeamResult = { ok: true; link?: string; emailed?: boolean } | { ok: false; error: string };
 
 const ROLES: MemberRole[] = ["admin", "scanner", "viewer"];
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -41,7 +42,32 @@ export async function createInvite(eventId: string, emailInput: string, role: Me
   });
   if (error) return { ok: false, error: "Could not create the invitation. Please try again." };
 
-  return { ok: true, link: `${siteUrl()}/invite/${token}` };
+  const link = `${siteUrl()}/invite/${token}`;
+  const [{ data: event }, { data: profile }] = await Promise.all([
+    auth.supabase.from("events").select("title,primary_color,cover_image_url").eq("id", eventId).maybeSingle(),
+    auth.supabase.from("profiles").select("full_name").eq("id", auth.userId).maybeSingle(),
+  ]);
+  const emailed = event
+    ? await sendTeamInviteEmail({ to: email, link, role, inviterName: profile?.full_name?.trim() || "An organizer", event })
+    : false;
+  return { ok: true, link, emailed };
+}
+
+/** Issues a fresh link (the old one stops working) and emails it again. Works for expired invites too. */
+export async function resendInvite(eventId: string, inviteId: string): Promise<TeamResult> {
+  const auth = await authorizeAction(eventId, ADMIN_ROLES);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (!UUID_RE.test(inviteId)) return { ok: false, error: "Invitation not found." };
+
+  const { data } = await auth.supabase
+    .from("event_invites")
+    .select("email,role")
+    .eq("id", inviteId)
+    .eq("event_id", eventId)
+    .eq("status", "pending")
+    .maybeSingle();
+  if (!data) return { ok: false, error: "Invitation not found." };
+  return createInvite(eventId, data.email, data.role as MemberRole);
 }
 
 export async function revokeInvite(eventId: string, inviteId: string): Promise<TeamResult> {

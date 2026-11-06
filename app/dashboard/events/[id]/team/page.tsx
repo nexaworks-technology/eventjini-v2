@@ -5,6 +5,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const { supabase } = await requireEventAccess(id, ADMIN_ROLES);
 
+  const now = new Date();
   const [{ data: team }, { data: inviteRows }] = await Promise.all([
     supabase.rpc("event_team", { p_event_id: id }),
     supabase
@@ -12,7 +13,6 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
       .select("id,email,role,expires_at")
       .eq("event_id", id)
       .eq("status", "pending")
-      .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false }),
   ]);
 
@@ -21,7 +21,7 @@ export default async function TeamPage({ params }: { params: Promise<{ id: strin
       <TeamManager
         eventId={id}
         members={(Array.isArray(team) ? team : []) as TeamMember[]}
-        invites={(inviteRows ?? []) as PendingInvite[]}
+        invites={(inviteRows ?? []).map((i) => ({ ...i, expired: new Date(i.expires_at) <= now })) as PendingInvite[]}
       />
     </div>
   );
