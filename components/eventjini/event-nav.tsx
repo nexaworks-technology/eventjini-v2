@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  BarChart3, CalendarClock, ClipboardList, Handshake, LayoutGrid, Mail, Menu, PiggyBank, ScanLine, Settings,
+  BarChart3, CalendarClock, Mic, ClipboardList, Handshake, LayoutGrid, Mail, Menu, PiggyBank, ScanLine, Settings,
   Store, UserRoundCog, Users, Workflow, ListChecks,
 } from "lucide-react";
 import Link from "next/link";
@@ -23,6 +23,7 @@ const GROUPS: { label: string; items: Item[] }[] = [
   { label: "Operations", items: [
     { key: "check-in", label: "Check-in", path: "/check-in", roles: CHECKIN_ROLES, icon: ScanLine },
     { key: "agenda", label: "Agenda", path: "/agenda", roles: null, icon: CalendarClock },
+    { key: "speakers", label: "Speakers", path: "/speakers", roles: null, icon: Mic },
     { key: "tasks", label: "Tasks", path: "/tasks", roles: TASK_READ_ROLES, icon: ListChecks },
     { key: "budget", label: "Budget", path: "/budget", roles: TASK_READ_ROLES, icon: PiggyBank },
     { key: "vendors", label: "Vendors", path: "/vendors", roles: TASK_READ_ROLES, icon: Store },

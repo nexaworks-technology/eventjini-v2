@@ -6,6 +6,7 @@ import { PoweredBy, PublicSection } from "@/components/eventjini/public-event-ch
 import { eventBrandStyle } from "@/lib/branding";
 import { EVENT_TYPES, mapsUrl, SOCIAL_KEYS, SOCIAL_LABELS } from "@/lib/events";
 import { FEATURES } from "@/lib/features";
+import { initials, SPEAKER_SOCIAL_KEYS, SPEAKER_SOCIAL_LABELS, speakerTitleLine, type SpeakerRow } from "@/lib/speakers";
 import { getPublishedEvent, getViewerState } from "@/lib/public-event";
 import { eventDays, formatEventWhen, utcToZoned } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -26,12 +27,21 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   const { soldOut, registration } = await getViewerState(event);
 
   const supabase = await createClient();
-  const [{ data: sessionRows }, { count: tierCount }] = await Promise.all([
+  const [{ data: sessionRows }, { count: tierCount }, { data: speakerRows }, { data: linkRows }] = await Promise.all([
     supabase.from("event_sessions").select("id,title,speaker,description,start_at,end_at").eq("event_id", event.id).order("start_at"),
     FEATURES.sponsors
       ? supabase.from("sponsorship_tiers").select("id", { count: "exact", head: true }).eq("event_id", event.id)
       : Promise.resolve({ count: 0 }),
+    supabase.from("event_speakers").select("*").eq("event_id", event.id).order("is_featured", { ascending: false }).order("sort_order").order("name"),
+    supabase.from("event_session_speakers").select("session_id,speaker_id").eq("event_id", event.id).order("sort_order"),
   ]);
+  const speakers = (speakerRows ?? []) as SpeakerRow[];
+  const speakerById = new Map(speakers.map((sp) => [sp.id, sp]));
+  const sessionSpeakers = new Map<string, SpeakerRow[]>();
+  for (const l of linkRows ?? []) {
+    const sp = speakerById.get(l.speaker_id);
+    if (sp) sessionSpeakers.set(l.session_id, [...(sessionSpeakers.get(l.session_id) ?? []), sp]);
+  }
   const sessions = sessionRows ?? [];
   const timeFmt = new Intl.DateTimeFormat("en-US", { timeZone: event.timezone, hour: "numeric", minute: "2-digit" });
   const days = eventDays(event.start_at, event.end_at, event.timezone);
@@ -173,7 +183,11 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                         <p className="text-sm font-medium text-muted-foreground tabular-nums">{timeFmt.format(new Date(s.start_at))}</p>
                         <div>
                           <p className="font-medium">{s.title}</p>
-                          {s.speaker && <p className="text-sm text-foreground/80">{s.speaker}</p>}
+                          {(sessionSpeakers.has(s.id) || s.speaker) && (
+                            <p className="text-sm text-foreground/80">
+                              {[...(sessionSpeakers.get(s.id) ?? []).map((sp) => sp.name), ...(s.speaker ? [s.speaker] : [])].join(", ")}
+                            </p>
+                          )}
                           {s.description && <p className="text-sm whitespace-pre-line text-muted-foreground">{s.description}</p>}
                         </div>
                       </li>
@@ -182,6 +196,44 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                 </div>
               ))}
             </div>
+          </PublicSection>
+        )}
+
+        {speakers.length > 0 && (
+          <PublicSection title="Speakers">
+            <ul className="grid gap-4 sm:grid-cols-2">
+              {speakers.map((sp) => (
+                <li key={sp.id} className="flex gap-3">
+                  {sp.photo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={sp.photo_url} alt="" loading="lazy" className="size-14 shrink-0 rounded-full object-cover" />
+                  ) : (
+                    <span aria-hidden className="inline-flex size-14 shrink-0 items-center justify-center rounded-full font-semibold" style={{ backgroundColor: "color-mix(in oklch, var(--event-primary) 15%, transparent)", color: "var(--event-primary)" }}>
+                      {initials(sp.name)}
+                    </span>
+                  )}
+                  <div className="min-w-0 space-y-0.5">
+                    <p className="font-medium">{sp.name}</p>
+                    {speakerTitleLine(sp) && <p className="text-sm text-muted-foreground">{speakerTitleLine(sp)}</p>}
+                    {sp.bio && (
+                      <details className="text-sm">
+                        <summary className="cursor-pointer text-muted-foreground hover:text-foreground">About</summary>
+                        <p className="mt-1 whitespace-pre-line text-foreground/90">{sp.bio}</p>
+                      </details>
+                    )}
+                    {SPEAKER_SOCIAL_KEYS.some((k) => sp.social_links?.[k]) && (
+                      <p className="flex flex-wrap gap-2 pt-0.5 text-xs">
+                        {SPEAKER_SOCIAL_KEYS.filter((k) => sp.social_links?.[k]).map((k) => (
+                          <a key={k} href={sp.social_links[k]} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-4">
+                            {SPEAKER_SOCIAL_LABELS[k]}
+                          </a>
+                        ))}
+                      </p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
           </PublicSection>
         )}
 

@@ -1,4 +1,4 @@
-import { BarChart3, CalendarClock, ExternalLink, ListChecks, Mail, MapPin, Pencil, ScanLine, Users } from "lucide-react";
+import { BarChart3, CalendarClock, Mic, ExternalLink, ListChecks, Mail, MapPin, Pencil, ScanLine, Users } from "lucide-react";
 import Link from "next/link";
 import { FormMessage } from "@/components/eventjini/form-feedback";
 import { MetricCard } from "@/components/eventjini/metric-card";
@@ -14,7 +14,8 @@ import { cn } from "@/lib/utils";
 const QUICK_LINKS: { path: string; label: string; description: string; roles: EventRole[] | null; icon: typeof Users }[] = [
   { path: "/guests", label: "Guests", description: "Search, filter and export attendees", roles: ADMIN_ROLES, icon: Users },
   { path: "/check-in", label: "Check-in", description: "Scan QR tickets or enter codes", roles: CHECKIN_ROLES, icon: ScanLine },
-  { path: "/agenda", label: "Agenda", description: "Sessions, speakers and timing", roles: null, icon: CalendarClock },
+  { path: "/agenda", label: "Agenda", description: "Sessions and timing", roles: null, icon: CalendarClock },
+  { path: "/speakers", label: "Speakers", description: "Speaker profiles for your event page", roles: null, icon: Mic },
   { path: "/tasks", label: "Tasks", description: "Your event operations board", roles: TASK_READ_ROLES, icon: ListChecks },
   { path: "/communications", label: "Communications", description: "Email your attendees", roles: ADMIN_ROLES, icon: Mail },
   { path: "/analytics", label: "Analytics", description: "Traffic, registrations and attendance", roles: TASK_READ_ROLES, icon: BarChart3 },

@@ -16,13 +16,21 @@ export default async function AgendaPage({ params }: { params: Promise<{ id: str
   const { id } = await params;
   const { supabase, event, role } = await requireEventAccess(id);
 
-  const { data } = await supabase
-    .from("event_sessions")
-    .select("id,title,description,speaker,start_at,end_at")
-    .eq("event_id", id)
-    .order("start_at")
-    .order("sort_order");
+  const [{ data }, { data: speakerRows }, { data: links }] = await Promise.all([
+    supabase
+      .from("event_sessions")
+      .select("id,title,description,speaker,start_at,end_at")
+      .eq("event_id", id)
+      .order("start_at")
+      .order("sort_order"),
+    supabase.from("event_speakers").select("id,name,designation,organization").eq("event_id", id).order("name"),
+    supabase.from("event_session_speakers").select("session_id,speaker_id,sort_order").eq("event_id", id).order("sort_order"),
+  ]);
   const sessions = (data ?? []) as SessionRow[];
+  const speakers = speakerRows ?? [];
+  const speakerName = new Map(speakers.map((s) => [s.id, s.name]));
+  const linksBySession = new Map<string, string[]>();
+  for (const l of links ?? []) linksBySession.set(l.session_id, [...(linksBySession.get(l.session_id) ?? []), l.speaker_id]);
 
   const days = eventDays(event.start_at, event.end_at, event.timezone).map((d, i, all) => ({
     date: d.date,
@@ -40,12 +48,14 @@ export default async function AgendaPage({ params }: { params: Promise<{ id: str
       title: s.title,
       description: s.description,
       speaker: s.speaker,
+      speakerNames: (linksBySession.get(s.id) ?? []).map((sid) => speakerName.get(sid)).filter((n): n is string => !!n),
       dateLabel: dayLabel(a.date),
       timeLabel: w.time,
       form: {
         title: s.title,
         description: s.description ?? "",
         speaker: s.speaker ?? "",
+        speakerIds: linksBySession.get(s.id) ?? [],
         startDate: a.date,
         startTime: a.time,
         endDate: b.date,
@@ -62,6 +72,7 @@ export default async function AgendaPage({ params }: { params: Promise<{ id: str
         items={items}
         canEdit={ADMIN_ROLES.includes(role)}
         days={days}
+        speakers={speakers.map((s) => ({ id: s.id, name: s.name, detail: [s.designation, s.organization].filter(Boolean).join(", ") }))}
       />
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useConfirm } from "@/components/eventjini/confirm-dialog";
 import { btnPrimary, btnSecondarySm, inputCls } from "@/components/eventjini/classes";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteSession, saveSession, type SessionInput } from "@/app/dashboard/events/[id]/agenda/actions";
@@ -11,6 +12,7 @@ export type AgendaItem = {
   title: string;
   description: string | null;
   speaker: string | null;
+  speakerNames: string[];
   dateLabel: string;
   timeLabel: string;
   form: SessionInput;
@@ -22,11 +24,13 @@ export function AgendaEditor({
   items,
   canEdit,
   days,
+  speakers,
 }: {
   eventId: string;
   items: AgendaItem[];
   canEdit: boolean;
   days: { date: string; label: string }[];
+  speakers: { id: string; name: string; detail: string }[];
 }) {
   const confirm = useConfirm();
   const router = useRouter();
@@ -40,7 +44,10 @@ export function AgendaEditor({
     setForm(initial);
     setMessage(null);
   }
-  function set<K extends keyof SessionInput>(k: K, v: string) {
+  function toggleSpeaker(id: string) {
+    setForm((f) => (f ? { ...f, speakerIds: f.speakerIds.includes(id) ? f.speakerIds.filter((x) => x !== id) : [...f.speakerIds, id] } : f));
+  }
+  function set<K extends Exclude<keyof SessionInput, "speakerIds">>(k: K, v: string) {
     setForm((f) => (f ? { ...f, [k]: v } : f));
   }
 
@@ -89,7 +96,31 @@ export function AgendaEditor({
           <input type="time" className={inputCls} value={form.endTime} onChange={(e) => set("endTime", e.target.value)} />
         </label>
       </div>
-      <input className={inputCls} aria-label="Speaker" placeholder="Speaker" value={form.speaker} onChange={(e) => set("speaker", e.target.value)} />
+      <fieldset className="space-y-1.5">
+        <legend className="text-xs text-muted-foreground">Speakers</legend>
+        {speakers.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No speakers yet. <Link href={`/dashboard/events/${eventId}/speakers`} className="underline">Add speakers</Link> first, then assign them here.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {speakers.map((sp) => {
+              const on = form.speakerIds.includes(sp.id);
+              return (
+                <label key={sp.id} title={sp.detail || undefined} className={`cursor-pointer rounded-full border px-3 py-1 text-sm has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50 ${on ? "border-primary bg-primary/10 font-medium" : "border-border text-muted-foreground hover:text-foreground"}`}>
+                  <input type="checkbox" className="sr-only" checked={on} onChange={() => toggleSpeaker(sp.id)} />
+                  {sp.name}
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </fieldset>
+      {form.speaker && (
+        <label className="block space-y-1 text-xs text-muted-foreground">Speaker (old text field — clear it once the speaker is added above)
+          <input className={inputCls} value={form.speaker} onChange={(e) => set("speaker", e.target.value)} />
+        </label>
+      )}
       <textarea className={inputCls} rows={3} aria-label="Session description" placeholder="Description" value={form.description} onChange={(e) => set("description", e.target.value)} />
       <div className="flex gap-2">
         <button type="button" onClick={save} disabled={pending} className={btnPrimary}>
@@ -126,7 +157,9 @@ export function AgendaEditor({
                 <div>
                   <p className="text-sm text-muted-foreground">{s.timeLabel}</p>
                   <p className="font-medium text-foreground">{s.title}</p>
-                  {s.speaker && <p className="text-sm text-foreground">{s.speaker}</p>}
+                  {(s.speakerNames.length > 0 || s.speaker) && (
+                    <p className="text-sm text-foreground">{[...s.speakerNames, ...(s.speaker ? [s.speaker] : [])].join(", ")}</p>
+                  )}
                   {s.description && <p className="whitespace-pre-line text-sm text-muted-foreground">{s.description}</p>}
                 </div>
                 {canEdit && (
@@ -148,7 +181,7 @@ export function AgendaEditor({
           onClick={() => {
             const last = items.at(-1)?.form.startDate;
             const date = last && days.some((d) => d.date === last) ? last : days[0]?.date ?? "";
-            open("new", { title: "", description: "", speaker: "", startDate: date, startTime: "", endDate: date, endTime: "" });
+            open("new", { title: "", description: "", speaker: "", speakerIds: [], startDate: date, startTime: "", endDate: date, endTime: "" });
           }}
           className={btnSecondarySm}
         >

@@ -8,6 +8,7 @@ export type SessionInput = {
   title: string;
   description: string;
   speaker: string;
+  speakerIds: string[];
   startDate: string;
   startTime: string;
   endDate: string;
@@ -48,6 +49,9 @@ export async function saveSession(
     return { ok: false, error: `Sessions must fall within the event's dates and times (${w.date}, ${w.time}).` };
   }
 
+  const speakerIds = [...new Set(input.speakerIds ?? [])];
+  if (speakerIds.some((s) => !UUID_RE.test(s)) || speakerIds.length > 20) return { ok: false, error: "Choose valid speakers." };
+
   const row = {
     title,
     description: input.description.trim() || null,
@@ -61,6 +65,16 @@ export async function saveSession(
     : await auth.supabase.from("event_sessions").insert({ ...row, event_id: eventId }).select("id").maybeSingle();
 
   if (error || !data) return { ok: false, error: "Could not save the session. Please try again." };
+
+  // Replace the speaker links. The DB trigger rejects speakers from another event.
+  const { error: unlinkError } = await auth.supabase.from("event_session_speakers").delete().eq("session_id", data.id).eq("event_id", eventId);
+  if (unlinkError) return { ok: false, error: "The session was saved, but its speakers could not be updated." };
+  if (speakerIds.length) {
+    const { error: linkError } = await auth.supabase
+      .from("event_session_speakers")
+      .insert(speakerIds.map((speaker_id, i) => ({ session_id: data.id, speaker_id, event_id: eventId, sort_order: i })));
+    if (linkError) return { ok: false, error: "The session was saved, but its speakers could not be updated." };
+  }
   return { ok: true };
 }
 
