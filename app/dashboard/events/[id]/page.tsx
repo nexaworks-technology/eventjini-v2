@@ -37,7 +37,7 @@ export default async function EventOverviewPage({
   const isAdmin = ADMIN_ROLES.includes(role);
 
   const [{ data: sessions }, { data: regRows }] = await Promise.all([
-    supabase.from("event_sessions").select("id,title,speaker,start_at,end_at").eq("event_id", id).order("start_at").limit(6),
+    supabase.from("event_sessions").select("id,title,speaker,start_at,end_at").eq("event_id", id).not("start_at", "is", null).order("start_at").limit(6),
     isAdmin ? supabase.from("registrations").select("status").eq("event_id", id) : Promise.resolve({ data: null }),
   ]);
 

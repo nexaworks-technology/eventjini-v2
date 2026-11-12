@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { PageViewTracker } from "@/components/page-view-tracker";
 import { PoweredBy, PublicSection } from "@/components/eventjini/public-event-chrome";
 import { eventBrandStyle } from "@/lib/branding";
+import { sessionTypeLabel } from "@/lib/agenda";
 import { EVENT_TYPES, mapsUrl, SOCIAL_KEYS, SOCIAL_LABELS } from "@/lib/events";
 import { FEATURES } from "@/lib/features";
 import { initials, SPEAKER_SOCIAL_KEYS, SPEAKER_SOCIAL_LABELS, speakerTitleLine, type SpeakerRow } from "@/lib/speakers";
@@ -27,14 +28,23 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   const { soldOut, registration } = await getViewerState(event);
 
   const supabase = await createClient();
-  const [{ data: sessionRows }, { count: tierCount }, { data: speakerRows }, { data: linkRows }] = await Promise.all([
-    supabase.from("event_sessions").select("id,title,speaker,description,start_at,end_at").eq("event_id", event.id).order("start_at"),
+  const [{ data: sessionRows }, { count: tierCount }, { data: speakerRows }, { data: linkRows }, { data: trackRows }, { data: hallRows }] = await Promise.all([
+    supabase
+      .from("event_sessions")
+      .select("id,title,speaker,description,start_at,end_at,session_type,is_featured,track_id,hall_id")
+      .eq("event_id", event.id)
+      .order("start_at", { nullsFirst: false })
+      .order("title"),
     FEATURES.sponsors
       ? supabase.from("sponsorship_tiers").select("id", { count: "exact", head: true }).eq("event_id", event.id)
       : Promise.resolve({ count: 0 }),
     supabase.from("event_speakers").select("*").eq("event_id", event.id).order("is_featured", { ascending: false }).order("sort_order").order("name"),
     supabase.from("event_session_speakers").select("session_id,speaker_id").eq("event_id", event.id).order("sort_order"),
+    supabase.from("event_tracks").select("id,name").eq("event_id", event.id),
+    supabase.from("event_halls").select("id,name").eq("event_id", event.id),
   ]);
+  const trackName = new Map((trackRows ?? []).map((t) => [t.id, t.name]));
+  const hallName = new Map((hallRows ?? []).map((h) => [h.id, h.name]));
   const speakers = (speakerRows ?? []) as SpeakerRow[];
   const speakerById = new Map(speakers.map((sp) => [sp.id, sp]));
   const sessionSpeakers = new Map<string, SpeakerRow[]>();
@@ -47,6 +57,13 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
   const days = eventDays(event.start_at, event.end_at, event.timezone);
   const agendaDays: { key: string; label: string | null; sessions: typeof sessions }[] = [];
   for (const s of sessions) {
+    if (!s.start_at) {
+      // Sorted last (nulls last), so they form a single trailing group.
+      const group = agendaDays.at(-1);
+      if (group?.key === "tba") group.sessions.push(s);
+      else agendaDays.push({ key: "tba", label: "Time to be announced", sessions: [s] });
+      continue;
+    }
     const date = utcToZoned(s.start_at, event.timezone).date;
     const idx = days.findIndex((d) => d.date === date);
     const label = days.length > 1 ? (idx >= 0 ? `Day ${idx + 1} · ${days[idx].label}` : date) : null;
@@ -180,9 +197,15 @@ export default async function PublicEventPage({ params }: { params: Promise<{ sl
                   <ol className="space-y-4">
                     {day.sessions.map((s) => (
                       <li key={s.id} className="grid grid-cols-[4.5rem_1fr] gap-3 border-l-2 pl-3" style={{ borderColor: "var(--event-primary)" }}>
-                        <p className="text-sm font-medium text-muted-foreground tabular-nums">{timeFmt.format(new Date(s.start_at))}</p>
+                        <p className="text-sm font-medium text-muted-foreground tabular-nums">{s.start_at ? timeFmt.format(new Date(s.start_at)) : "TBA"}</p>
                         <div>
-                          <p className="font-medium">{s.title}</p>
+                          <p className="font-medium">
+                            {s.title}
+                            {s.is_featured && <span className="ml-2 rounded-full px-2 py-0.5 align-middle text-xs font-medium" style={{ backgroundColor: "color-mix(in oklch, var(--event-primary) 15%, transparent)", color: "var(--event-primary)" }}>Featured</span>}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {[sessionTypeLabel(s.session_type), s.track_id ? trackName.get(s.track_id) : null, s.hall_id ? hallName.get(s.hall_id) : null].filter(Boolean).join(" · ")}
+                          </p>
                           {(sessionSpeakers.has(s.id) || s.speaker) && (
                             <p className="text-sm text-foreground/80">
                               {[...(sessionSpeakers.get(s.id) ?? []).map((sp) => sp.name), ...(s.speaker ? [s.speaker] : [])].join(", ")}

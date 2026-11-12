@@ -71,6 +71,19 @@ export async function saveEvent(
   let savedId: string;
 
   if (eventId) {
+    // Moving the event must not strand scheduled sessions outside its new dates.
+    const { data: stranded } = await supabase
+      .from("event_sessions")
+      .select("title")
+      .eq("event_id", eventId)
+      .or(`start_at.lt.${startAt.toISOString()},end_at.gt.${endAt.toISOString()}`)
+      .limit(3);
+    if (stranded?.length) {
+      const names = stranded.map((s) => `“${s.title}”`).join(", ");
+      const error = `These sessions would fall outside the new dates: ${names}${stranded.length === 3 ? " and possibly more" : ""}. Move them in the agenda (or mark their time as to be announced) first.`;
+      return { ok: false, error, fieldErrors: { range: error } };
+    }
+
     const update = intent === "publish" ? { ...fields, status: "published" as const } : fields;
     const { data, error } = await supabase
       .from("events")
