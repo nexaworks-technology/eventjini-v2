@@ -35,6 +35,7 @@ const VENUE_ADDRESS_MAX = 500;
 export type EventRow = {
   id: string;
   organizer_id: string;
+  organization_id: string;
   title: string;
   slug: string;
   description: string | null;

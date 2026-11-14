@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { SLUG_RE } from "@/lib/slug";
+import { getOrganizations } from "@/lib/organizations";
 import { validateEventValues, type EventFormValues, type FieldErrors } from "@/lib/events";
 
 export type SaveResult = { ok: true; eventId?: string } | { ok: false; error?: string; fieldErrors?: FieldErrors };
@@ -99,11 +100,16 @@ export async function saveEvent(
     if (!data) return { ok: false, error: "Event not found or you do not have access to it." };
     savedId = data.id;
   } else {
+    // New events go into the organization the user is working in.
+    const { current } = await getOrganizations(supabase, user.id);
+    if (!current) return { ok: false, error: "Create an organization first." };
+    if (current.role === "member") return { ok: false, error: `Only owners and admins of ${current.name} can create events.` };
     const { data, error } = await supabase
       .from("events")
       .insert({
         ...fields,
         organizer_id: user.id,
+        organization_id: current.id,
         status: intent === "publish" ? "published" : "draft",
       })
       .select("id")

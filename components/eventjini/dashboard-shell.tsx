@@ -1,12 +1,26 @@
 import { btnPrimary } from "@/components/eventjini/classes";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
+import type { Organization } from "@/lib/organizations";
 import { AppNav } from "./app-nav";
 import { Brand } from "./brand";
 import { MobileNav } from "./mobile-nav";
+import { OrgSwitcher } from "./org-switcher";
 import { UserMenu } from "./user-menu";
 
-export function DashboardShell({ email, children }: { email: string | null; children: ReactNode }) {
+export function DashboardShell({
+  email,
+  orgs,
+  currentOrg,
+  signedIn,
+  children,
+}: {
+  email: string | null;
+  orgs: Organization[];
+  currentOrg: Organization | null;
+  signedIn: boolean;
+  children: ReactNode;
+}) {
   return (
     <div className="min-h-dvh bg-background lg:pl-60">
       <a href="#main" className={cn(btnPrimary, "sr-only z-50 focus:not-sr-only focus:fixed focus:top-2 focus:left-2")}>
@@ -23,6 +37,11 @@ export function DashboardShell({ email, children }: { email: string | null; chil
       <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-background/85 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/70 sm:px-4 lg:px-8">
         <MobileNav />
         <Brand href="/dashboard" className="lg:hidden" />
+        {signedIn && (
+          <div className="min-w-0 lg:-ml-2">
+            <OrgSwitcher orgs={orgs} current={currentOrg} />
+          </div>
+        )}
         <div className="ml-auto">
           <UserMenu email={email} />
         </div>

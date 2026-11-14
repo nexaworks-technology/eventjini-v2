@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/eventjini/page-header";
 import { redirect } from "next/navigation";
 import { EventWizard } from "@/components/event-wizard";
 import { emptyFormValues } from "@/lib/events";
+import { getOrganizations } from "@/lib/organizations";
 import { getTimezones } from "@/lib/time";
 import { createClient } from "@/utils/supabase/server";
 
@@ -13,6 +14,9 @@ export default async function NewEventPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user || user.is_anonymous) redirect("/login");
+  const { current } = await getOrganizations(supabase, user.id);
+  if (!current) redirect("/dashboard/org/new");
+  if (current.role === "member") redirect("/dashboard/events");
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -20,7 +24,7 @@ export default async function NewEventPage() {
         <Link href="/dashboard/events" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="size-3.5" aria-hidden /> Events
         </Link>
-        <PageHeader title="Create event" description="Four short steps: basics, date and time, settings, and a review. Your event is saved as a draft, so nothing goes public until you publish it." />
+        <PageHeader title="Create event" description={<>In <span className="font-medium text-foreground">{current.name}</span>. Four short steps: basics, date and time, settings, and a review. Your event is saved as a draft, so nothing goes public until you publish it.</>} />
       </div>
       <EventWizard mode="create" initialValues={emptyFormValues()} timezones={getTimezones()} />
     </div>

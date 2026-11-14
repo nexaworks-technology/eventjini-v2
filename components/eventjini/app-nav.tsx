@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, LayoutDashboard, Ticket } from "lucide-react";
+import { Building2, CalendarDays, LayoutDashboard, Ticket } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const ITEMS = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard, match: (p: string) => p === "/dashboard" },
   { href: "/dashboard/events", label: "Events", icon: CalendarDays, match: (p: string) => p.startsWith("/dashboard/events") },
+  { href: "/dashboard/org", label: "Organization", icon: Building2, match: (p: string) => p.startsWith("/dashboard/org") },
   { href: "/my-tickets", label: "My Tickets", icon: Ticket, match: (p: string) => p.startsWith("/my-tickets") },
 ];
 
