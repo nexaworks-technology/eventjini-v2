@@ -1,11 +1,9 @@
+import "server-only";
 import { cookies } from "next/headers";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { OrgRole } from "@/lib/roles";
+import { ORG_COOKIE, type Organization, type OrgRole } from "@/lib/roles";
 
-export const ORG_COOKIE = "ej_org";
-export const ORG_NAME_MAX = 80;
-
-export type Organization = { id: string; name: string; logo_url: string | null; role: OrgRole };
+export { ORG_COOKIE, ORG_NAME_MAX, type Organization } from "@/lib/roles";
 
 /** The signed-in user's organizations, plus the one they're working in (cookie, else the first). */
 export async function getOrganizations(supabase: SupabaseClient, userId: string) {

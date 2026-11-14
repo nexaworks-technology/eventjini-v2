@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { Organization } from "@/lib/organizations";
+import type { Organization } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
 export function OrgLogo({ org, className }: { org: Pick<Organization, "name" | "logo_url">; className?: string }) {

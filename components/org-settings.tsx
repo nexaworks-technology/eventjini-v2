@@ -7,7 +7,7 @@ import { useConfirm } from "@/components/eventjini/confirm-dialog";
 import { btnDanger, btnPrimary, btnSecondarySm, inputCls } from "@/components/eventjini/classes";
 import { FormSection } from "@/components/eventjini/form-section";
 import { OrgLogo } from "@/components/eventjini/org-switcher";
-import { ORG_NAME_MAX, type Organization } from "@/lib/organizations";
+import { ORG_NAME_MAX, type Organization } from "@/lib/roles";
 import { createClient } from "@/utils/supabase/client";
 
 const TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };

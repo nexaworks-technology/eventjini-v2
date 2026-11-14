@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { createOrganization } from "@/app/dashboard/org/actions";
 import { btnPrimary, inputCls } from "@/components/eventjini/classes";
-import { ORG_NAME_MAX } from "@/lib/organizations";
+import { ORG_NAME_MAX } from "@/lib/roles";
 
 export function CreateOrgForm() {
   const [name, setName] = useState("");

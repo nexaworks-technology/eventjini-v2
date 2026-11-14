@@ -25,3 +25,8 @@ export const ORG_ROLE_HELP: Record<OrgRole, string> = {
 export const ADMIN_ROLES: EventRole[] = ["owner", "admin"];
 export const CHECKIN_ROLES: EventRole[] = ["owner", "admin", "scanner"];
 export const TASK_READ_ROLES: EventRole[] = ["owner", "admin", "viewer"];
+
+export const ORG_COOKIE = "ej_org";
+export const ORG_NAME_MAX = 80;
+
+export type Organization = { id: string; name: string; logo_url: string | null; role: OrgRole };

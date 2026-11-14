@@ -1,7 +1,7 @@
 import { btnPrimary } from "@/components/eventjini/classes";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
-import type { Organization } from "@/lib/organizations";
+import type { Organization } from "@/lib/roles";
 import { AppNav } from "./app-nav";
 import { Brand } from "./brand";
 import { MobileNav } from "./mobile-nav";
