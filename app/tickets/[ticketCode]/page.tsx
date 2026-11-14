@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 import { PublicHeader } from "@/components/eventjini/public-header";
 import { StatusBadge } from "@/components/eventjini/status-badge";
+import { DownloadTicketButton } from "@/components/download-ticket-button";
 import { LeadConsentToggle } from "@/components/lead-consent-toggle";
 import { buttonVariants } from "@/components/ui/button";
 import type { EventRow } from "@/lib/events";
@@ -39,6 +40,7 @@ export default async function TicketPage({ params }: { params: Promise<{ ticketC
   if (!event) notFound();
 
   const qrSvg = await QRCode.toString(ticketCode, { type: "svg", margin: 2, width: 256, color: { dark: "#000000", light: "#ffffff" } });
+  const qrDataUrl = await QRCode.toDataURL(ticketCode, { margin: 2, width: 512, color: { dark: "#000000", light: "#ffffff" } });
   const when = formatEventWhen(event.start_at, event.end_at, event.timezone);
 
   return (
@@ -77,6 +79,15 @@ export default async function TicketPage({ params }: { params: Promise<{ ticketC
             <a href={`/api/events/${event.id}/calendar`} className={cn(buttonVariants({ size: "lg" }), "h-11 w-full")}>
               <CalendarPlus aria-hidden /> Add to calendar
             </a>
+            <DownloadTicketButton
+              eventTitle={event.title}
+              date={when.date}
+              time={`${when.time} (${event.timezone})`}
+              location={event.location}
+              attendee={`${reg.first_name} ${reg.last_name ?? ""}`.trim()}
+              code={ticketCode}
+              qrDataUrl={qrDataUrl}
+            />
             {FEATURES.sponsors && <LeadConsentToggle registrationId={reg.id} initial={reg.sponsor_lead_consent} />}
           </div>
         </article>

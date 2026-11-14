@@ -1,6 +1,6 @@
 "use client";
 
-import { Laptop, LogOut, Moon, Sun } from "lucide-react";
+import { Laptop, LogOut, Moon, Sun, UserRound } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -41,6 +41,11 @@ export function UserMenu({ email }: { email: string | null }) {
       <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuGroup>
           <DropdownMenuLabel className="truncate">{email ?? "Signed in"}</DropdownMenuLabel>
+          {email && (
+            <DropdownMenuItem onClick={() => router.push("/dashboard/profile")}>
+              <UserRound aria-hidden /> Your profile
+            </DropdownMenuItem>
+          )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
