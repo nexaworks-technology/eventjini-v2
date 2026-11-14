@@ -176,6 +176,11 @@ create policy "Organization admins can create events"
 on public.events for insert to authenticated
 with check (organizer_id = (select auth.uid()) and public.is_org_admin(organization_id));
 
+-- Checked against the row itself (not a lookup), so INSERT ... RETURNING can see the new event.
+create policy "Creators can view their events while in the organization"
+on public.events for select to authenticated
+using (organizer_id = (select auth.uid()) and public.is_org_member(organization_id));
+
 alter table public.organizations enable row level security;
 alter table public.organization_members enable row level security;
 alter table public.organization_invites enable row level security;
