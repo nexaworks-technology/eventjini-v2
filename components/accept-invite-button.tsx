@@ -5,7 +5,9 @@ import { cn } from "@/lib/utils";
 import { useState, useTransition } from "react";
 import { acceptInvite } from "@/app/invite/[token]/actions";
 
-export function AcceptInviteButton({ token }: { token: string }) {
+type Accept = (token: string) => Promise<{ ok: false; error: string }>;
+
+export function AcceptInviteButton({ token, accept = acceptInvite }: { token: string; accept?: Accept }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -16,7 +18,7 @@ export function AcceptInviteButton({ token }: { token: string }) {
         disabled={pending}
         onClick={() =>
           startTransition(async () => {
-            const r = await acceptInvite(token);
+            const r = await accept(token);
             if (r && !r.ok) setError(r.error);
           })
         }
